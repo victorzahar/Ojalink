@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { LogoutButton } from "@/components/auth/logout-button";
-import { requireRole } from "@/lib/auth/guard";
+import Link from "next/link";
+import { requireVendorUser } from "@/lib/vendor-products/access";
 
 // This page reads the session on every request. Block on the server so
 // protected content is never served from the static shell or a cache.
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default async function VendorPage() {
-  const user = await requireRole("vendor");
+  const user = await requireVendorUser();
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-md flex-col justify-center gap-6 px-4 py-8">
@@ -34,8 +35,9 @@ export default async function VendorPage() {
             This is a placeholder page for the vendor area.
           </p>
           <p className="text-sm text-muted-foreground">
-            Products, stock and incoming orders will live here.
+            Manage your shop products and stock.
           </p>
+          <Link href="/vendor/products" className="inline-flex min-h-11 items-center font-medium text-primary underline-offset-4 hover:underline">Manage my products →</Link>
           <LogoutButton className="w-full sm:w-auto" />
         </CardContent>
       </Card>
