@@ -26,6 +26,13 @@ Four roles, stored as `users.role`: `buyer`, `vendor`, `rider`, `admin`.
 - Vercel for deploys
 - Tailwind CSS for styling
 
+## Commands
+
+- Install: `npm install`
+- Run locally: `npm run dev`
+- Check before every push: `npm run build`
+- Lint: `npm run lint`
+
 ## Hard rules
 
 1. **Nobody pushes to `main`.** Work on a branch named `feature/<short-name>` (for example `feature/rider-app`). Open a pull request. Another person reviews. The project lead merges.
