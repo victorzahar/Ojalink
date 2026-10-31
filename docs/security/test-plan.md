@@ -1,0 +1,19 @@
+# Refused-access test plan
+
+Run these checks when the related features are available. Use test accounts only, and record each result in [results.csv](results.csv). Confirm unresolved route details in [route-agreement.md](route-agreement.md) before testing.
+
+| # | Who is logged in | What they try | Expected result |
+|---|---|---|---|
+| T01 | Logged-out user | Open `/orders` | Redirected to login. |
+| T02 | Buyer | Open `/vendor/dashboard` | Refused. |
+| T03 | Buyer | Open `/rider/jobs` | Refused. |
+| T04 | Vendor A | Open Vendor B's product edit URL | Refused. |
+| T05 | Rider B | Open an order assigned to Rider A | Refused. |
+| T06 | Buyer, vendor, then rider | Each opens `/admin` | Refused for each role. |
+| T07 | Unauthenticated webhook request | Send a fake Paystack webhook with a wrong signature | Rejected (400/401/403) and the order stays unpaid. |
+| T08 | Buyer B | Open Buyer A's order by pasting its URL | Refused. |
+| T09 | Vendor | Call the approve-vendor action directly | 401/403. |
+| T10 | Buyer | Call the refund action directly | 401/403 and the order remains unchanged. |
+| T11 | Admin | Refund more than the order total | Rejected with a clear error. |
+| T12 | Admin | Refund the same order twice | Second attempt rejected. |
+| T13 | Logged-out user | Open `/admin/stats` | Redirected to login. |
