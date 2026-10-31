@@ -8,23 +8,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { authClient } from "@/lib/auth/client";
-
-/** Friendly message for known Better Auth failures; everything else gets a safe fallback. */
-function friendlyErrorMessage(code: string | undefined, message: string | undefined, rawError: string): string {
-  switch (code) {
-    case "USER_ALREADY_EXISTS":
-      return "That email already has an account. Try logging in instead.";
-    case "INVALID_EMAIL":
-      return "That email address does not look right. Check it and try again.";
-    case "PASSWORD_TOO_SHORT":
-      return "Your password is too short. Use at least 8 characters.";
-    case "INVALID_EMAIL_OR_PASSWORD":
-      return "Wrong email or password. Check them and try again.";
-    default:
-      return rawError;
-  }
-}
+import { authClient, authErrorMessage } from "@/lib/auth/client";
 
 const ariaInvalidIf = (hasError: boolean) => (hasError ? (true as const) : undefined);
 
@@ -65,10 +49,20 @@ export function SignupForm() {
     const body: { name: string; email: string; password: string; phone?: string } = { name, email, password };
     if (phone) body.phone = phone;
 
-    const { error } = await authClient.signUpEmail(body);
+    let error: Awaited<ReturnType<typeof authClient.signUpEmail>>["error"] = null;
+    try {
+      ({ error } = await authClient.signUpEmail(body));
+    } catch {
+      // Network failure: no HTTP status at all.
+      setFormError(authErrorMessage(null));
+      setIsPending(false);
+      return;
+    }
 
     if (error) {
-      setFormError(friendlyErrorMessage(error.code, error.message, error.statusText ?? "Something went wrong creating your account. Please try again."));
+      // Status-based only: 401 → "Wrong email or password", 429 → "Too many
+      // attempts…", anything else → generic (real status logged in dev only).
+      setFormError(authErrorMessage(error));
       setIsPending(false);
       return;
     }
