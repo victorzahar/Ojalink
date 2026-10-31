@@ -2,6 +2,7 @@
   "name": "ojalink",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
@@ -9,10 +10,13 @@
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:check": "drizzle-kit check"
+    "db:check": "drizzle-kit check",
+    "db:seed": "tsx src/lib/db/seed.ts"
   },
   "dependencies": {
+    "@better-auth/drizzle-adapter": "^1.7.14",
     "@neondatabase/serverless": "^1.2.0",
+    "better-auth": "^1.7.14",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.1",
     "drizzle-orm": "^0.45.4",
@@ -36,6 +40,7 @@
     "eslint-config-next": "16.4.3",
     "postcss": "^8.5.32",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }
