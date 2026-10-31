@@ -104,6 +104,13 @@ Each feature owner works mainly inside their own folders and avoids editing othe
 - Reviewed by QA lead or a teammate
 - PR description says what changed, how to test it, and which test account to use
 
+## End-of-project checklist
+
+Before the final handover:
+
+- Review experimental Next.js flags with the team and decide keep/remove-with-reason for each one in `next.config.ts`: `cacheComponents`, `partialPrefetching`, `experimental.authInterrupts`.
+- Confirm the `export const instant = false` opt-out on the auth pages is still documented in the installed Next.js docs (`node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/02-route-segment-config/instant.md`) before any Next.js version bump.
+
 ## Test accounts
 
 Created by the Docs & README owner and listed in README.md: one each for buyer, vendor, rider and admin. Use Paystack test cards only.
