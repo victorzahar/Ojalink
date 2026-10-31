@@ -95,9 +95,76 @@ export async function publishProduct(productId: string) {
 }
 ```
 
+## A role check is not an ownership check
+
+`requireRole("vendor")` only proves the caller is *a* vendor. It does not prove
+the order, product, delivery or payout belongs to **their** shop. Without an
+ownership filter, any vendor can read or change another vendor's data by
+guessing an id. Filter by the vendor row whose `user_id` is the current user.
+
+Copy-paste baseline for a vendor orders query:
+
+```ts
+// src/app/vendor/orders/page.tsx
+import { eq } from "drizzle-orm";
+
+import { requireRole } from "@/lib/auth/guard";
+import { getDb } from "@/lib/db";
+import { orders, vendors } from "@/lib/db/schema";
+
+export default async function VendorOrdersPage() {
+  const user = await requireRole("vendor"); // admin also passes
+
+  // Admin is the only exception; every other caller is scoped to the vendor
+  // row that belongs to them (vendors.userId === the signed-in user's id).
+  const ownership =
+    user.role === "admin" ? undefined : eq(vendors.userId, user.id);
+
+  const rows = await getDb()
+    .select({
+      id: orders.id,
+      status: orders.status,
+      totalKobo: orders.totalKobo,
+      createdAt: orders.createdAt,
+    })
+    .from(orders)
+    .innerJoin(vendors, eq(orders.vendorId, vendors.id))
+    .where(ownership);
+
+  return <pre>{JSON.stringify(rows, null, 2)}</pre>;
+}
+```
+
+For a single row, never trust an id from the URL or request body on its own —
+scope the same query too:
+
+```ts
+// Same page: also import { and } from "drizzle-orm" and notFound from "next/navigation".
+// Only returns the order if this vendor owns it (admin skips the filter).
+const [order] = await getDb()
+  .select()
+  .from(orders)
+  .innerJoin(vendors, eq(orders.vendorId, vendors.id))
+  .where(
+    user.role === "admin"
+      ? eq(orders.id, orderId)
+      : and(eq(orders.id, orderId), eq(vendors.userId, user.id)),
+  );
+if (!order) notFound(); // not yours and not found look the same to the caller
+```
+
+**Every query for orders, products, deliveries and payouts must do this.**
+Join (or subquery) through `vendors.userId`, or filter by `buyerId` /
+`riderId` where that is the correct owner, and keep admin as the only
+exception. A route that takes a `vendorId`, `orderId` or `productId` from the
+browser and skips the ownership filter is a data leak.
+
+If you wrote a temporary `requireRole` stub, delete it and import the real one.
+
 ## Rules of thumb
 
 - Check on the server. Hiding a button is not security.
+- A role check is not an ownership check: scope every query to the caller.
 - Default is deny: only the roles you pass (plus admin) get in.
 - Return kind, clear errors; never reveal what other areas contain.
 - Re-check inside every server action and API handler — a page guard does not

@@ -4,6 +4,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { requireRole } from "@/lib/auth/guard";
 
+// This page reads the session on every request. Block on the server so
+// protected content is never served from the static shell or a cache.
+export const instant = false;
+
 export const metadata: Metadata = {
   title: "Admin area · OjaLink",
   description: "Your OjaLink admin area: vendors, disputes and stats.",

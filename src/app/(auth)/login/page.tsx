@@ -5,6 +5,10 @@ import { LoginForm } from "@/components/auth/login-form";
 import { roleHome } from "@/lib/auth/role-home";
 import { getCurrentUser } from "@/lib/auth/session";
 
+// This page reads the session on every request. Block on the server so the
+// signed-in redirect is decided fresh, never from a cache.
+export const instant = false;
+
 export const metadata: Metadata = {
   title: "Log in · OjaLink",
   description: "Log in to your OjaLink account to buy, sell or deliver.",
