@@ -1,9 +1,13 @@
 // src/app/vendor/orders/page.tsx
-import { and, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 
 import { requireRole } from "@/lib/auth/guard";
 import { getDb } from "@/lib/db";
 import { orders, vendors } from "@/lib/db/schema";
+import { formatDateLagos, formatNaira } from "@/lib/orders/format";
+
+// Reads the signed-in user's session on every visit, so never serve a cached page.
+export const dynamic = "force-dynamic";
 
 // Live status names only. "pending" is deliberately absent: the buyer hasn't paid yet.
 const GROUPS = {
@@ -15,8 +19,9 @@ const GROUPS = {
 
 const VISIBLE_STATUSES = Object.values(GROUPS).flatMap((g) => g.statuses);
 
-function formatNaira(kobo: number) {
-  return `₦${(kobo / 100).toLocaleString("en-NG", { minimumFractionDigits: 2 })}`;
+// First 8 characters of the order ID in capitals, e.g. "3F9A1C2B".
+function shortRef(id: string) {
+  return id.slice(0, 8).toUpperCase();
 }
 
 export default async function VendorOrdersPage() {
@@ -35,7 +40,8 @@ export default async function VendorOrdersPage() {
     })
     .from(orders)
     .innerJoin(vendors, eq(orders.vendorId, vendors.id))
-    .where(and(ownership, inArray(orders.status, VISIBLE_STATUSES)));
+    .where(and(ownership, inArray(orders.status, VISIBLE_STATUSES)))
+    .orderBy(desc(orders.createdAt));
 
   return (
     <main>
@@ -53,8 +59,8 @@ export default async function VendorOrdersPage() {
               <ul>
                 {groupRows.map((r) => (
                   <li key={r.id}>
-                    Order #{r.id} · {formatNaira(r.totalKobo)} · {r.status}
-                    {/* Accept and Reject buttons are added in the next file */}
+                    Order {shortRef(r.id)} · {formatDateLagos(r.createdAt)} ·{" "}
+                    {formatNaira(r.totalKobo)} · {r.status}
                   </li>
                 ))}
               </ul>
