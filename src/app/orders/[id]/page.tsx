@@ -26,6 +26,7 @@ const completedStepsByStatus = {
   picked_up: 3,
   delivered: 4,
   cancelled: 0,
+  refunded: 0,
 } as const;
 
 type OrderStatus = keyof typeof orderStatusCopy;
@@ -70,7 +71,10 @@ async function BuyerOrderDetails({
   }
 
   const statusCopy = orderStatusCopy[order.status];
-  const rejectedOrCancelled = order.status === "rejected" || order.status === "cancelled";
+  const rejectedOrCancelled =
+    order.status === "rejected" ||
+    order.status === "cancelled" ||
+    order.status === "refunded";
   const completedSteps = completedStepsByStatus[order.status as OrderStatus];
   const currentStepIndex = completedSteps - 1;
 
