@@ -2,7 +2,7 @@ import "server-only";
 
 import { orderStatusEmailCopy } from "@/lib/orders/email-copy";
 
-type OrderStatus = Exclude<keyof typeof orderStatusEmailCopy, "trackOrderLink">;
+type OrderStatus = Exclude<keyof typeof orderStatusEmailCopy, "trackOrderLink" | "closingLine">;
 
 type SendOrderStatusEmailInput = {
   to: string;
@@ -48,6 +48,7 @@ export async function sendOrderStatusEmail({
   const safeBody = escapeHtml(body);
   const safeOrderUrl = escapeHtml(orderUrl);
   const safeLinkText = escapeHtml(orderStatusEmailCopy.trackOrderLink);
+  const safeClosingLine = escapeHtml(orderStatusEmailCopy.closingLine);
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -58,8 +59,8 @@ export async function sendOrderStatusEmail({
       from,
       to,
       subject: copy.subject,
-      text: `${body}\n\n${orderStatusEmailCopy.trackOrderLink}: ${orderUrl}`,
-      html: `<p>${safeBody}</p><p><a href="${safeOrderUrl}">${safeLinkText}</a></p>`,
+      text: `${body}\n\n${orderStatusEmailCopy.trackOrderLink}: ${orderUrl}\n\n${orderStatusEmailCopy.closingLine}`,
+      html: `<p>${safeBody}</p><p><a href="${safeOrderUrl}">${safeLinkText}</a></p><p>${safeClosingLine}</p>`,
     }),
   });
 

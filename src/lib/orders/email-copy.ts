@@ -28,4 +28,5 @@ export const orderStatusEmailCopy = {
     body: "Your order from {shopName} was cancelled.",
   },
   trackOrderLink: "Track your order",
+  closingLine: "Thank you for shopping on OjaLink.",
 } as const;
