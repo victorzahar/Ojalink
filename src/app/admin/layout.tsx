@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { LogoutButton } from "@/components/auth/logout-button";
+
 const adminSections = [
   { href: "/admin/vendors", label: "Vendor approvals" },
   { href: "/admin/disputes", label: "Disputes" },
@@ -21,20 +23,23 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           >
             OjaLink Admin
           </Link>
-          <nav aria-label="Admin sections">
-            <ul className="flex flex-wrap gap-2">
-              {adminSections.map((section) => (
-                <li key={section.href}>
-                  <Link
-                    className="inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline"
-                    href={section.href}
-                  >
-                    {section.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <nav aria-label="Admin sections">
+              <ul className="flex flex-wrap gap-2">
+                {adminSections.map((section) => (
+                  <li key={section.href}>
+                    <Link
+                      className="inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline"
+                      href={section.href}
+                    >
+                      {section.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            <LogoutButton className="w-full sm:w-auto" />
+          </div>
         </div>
       </header>
       <div className="flex flex-1 flex-col">{children}</div>
