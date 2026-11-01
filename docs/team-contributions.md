@@ -31,7 +31,7 @@ Visitors can sign up, log in and log out. Protected pages and API routes check t
 
 The owner reports that sign-up ignores a submitted `role: "admin"` and creates a buyer, wrong password and unknown email use the same message, role changes apply on the next request, and protected pages are not cached after logout. Screenshots are already in `docs/screenshots/`; the admin-all-areas image is a composite of four screenshots.
 
-Known issues: production rate limiting is in memory and weak for Vercel; sign-up reveals whether an email exists (accepted trade-off); Google login and the admin role-management screen are not built. Vendor-to-vendor and buyer-to-buyer refused-access checks remain to be completed as specified by the Feature 10 owner.
+Known issues: production rate limiting is in memory and weak for Vercel; sign-up reveals whether an email exists (accepted trade-off); Google login and the admin role-management screen are not built. The buyer-to-buyer order refusal is reported as manually checked by the Feature 4 owner; the vendor-to-vendor refusal check remains to be completed with two vendor accounts.
 
 ## Submission checklist
 
