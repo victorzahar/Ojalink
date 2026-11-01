@@ -59,3 +59,7 @@ export function formatKoboAsNaira(priceKobo: number): string {
 export function canManageVendorProducts(role: string | null | undefined): boolean {
   return role === "vendor";
 }
+
+export function canCreateVendorProducts(approvalStatus: string | null | undefined): boolean {
+  return approvalStatus === "approved";
+}

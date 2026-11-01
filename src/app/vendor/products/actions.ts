@@ -7,8 +7,8 @@ import { redirect } from "next/navigation";
 import { requireVendorUser } from "@/lib/vendor-products/access";
 import { getDb } from "@/lib/db";
 import { categories, products } from "@/lib/db/schema";
-import { getVendorIdForUser } from "@/lib/vendor-products/queries";
-import { validateProductForm } from "@/lib/vendor-products/validation";
+import { getVendorApprovalStatus, getVendorIdForUser } from "@/lib/vendor-products/queries";
+import { canCreateVendorProducts, validateProductForm } from "@/lib/vendor-products/validation";
 
 export type ProductFormState = { error?: string };
 
@@ -16,6 +16,9 @@ async function saveProduct(formData: FormData, productId?: string): Promise<Prod
   const user = await requireVendorUser();
   const vendorId = await getVendorIdForUser(user.id);
   if (!vendorId) return { error: "Your seller profile is not ready yet. Please contact the team." };
+  if (!productId && !canCreateVendorProducts(await getVendorApprovalStatus(user.id))) {
+    return { error: "Your seller profile must be approved before you can add products." };
+  }
 
   const result = validateProductForm(formData);
   if (!result.success) return { error: result.error };

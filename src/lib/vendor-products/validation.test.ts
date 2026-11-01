@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { canManageVendorProducts, formatKoboAsNaira, nairaToKobo, validateProductForm } from "./validation";
+import { canCreateVendorProducts, canManageVendorProducts, formatKoboAsNaira, nairaToKobo, validateProductForm } from "./validation";
 
 function form(values: Record<string, string>) {
   const data = new FormData();
@@ -36,5 +36,16 @@ describe("vendor product rules", () => {
     expect(canManageVendorProducts("admin")).toBe(false);
     expect(canManageVendorProducts("buyer")).toBe(false);
     expect(canManageVendorProducts(undefined)).toBe(false);
+    expect(canManageVendorProducts("rider")).toBe(false);
+    expect(canManageVendorProducts(null)).toBe(false);
+    expect(canManageVendorProducts("superuser")).toBe(false);
+    expect(canManageVendorProducts("VENDOR")).toBe(false);
+  });
+
+  it("allows product creation only for approved vendors", () => {
+    expect(canCreateVendorProducts("approved")).toBe(true);
+    expect(canCreateVendorProducts("pending")).toBe(false);
+    expect(canCreateVendorProducts("rejected")).toBe(false);
+    expect(canCreateVendorProducts(null)).toBe(false);
   });
 });

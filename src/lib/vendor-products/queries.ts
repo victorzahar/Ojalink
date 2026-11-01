@@ -13,6 +13,15 @@ export async function getVendorIdForUser(userId: string) {
   return vendor?.id ?? null;
 }
 
+export async function getVendorApprovalStatus(userId: string) {
+  const [vendor] = await getDb()
+    .select({ approvalStatus: vendors.approvalStatus })
+    .from(vendors)
+    .where(eq(vendors.userId, userId))
+    .limit(1);
+  return vendor?.approvalStatus ?? null;
+}
+
 export async function listVendorProducts(vendorId: string) {
   return getDb()
     .select({
