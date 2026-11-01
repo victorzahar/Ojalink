@@ -6,7 +6,12 @@ OjaLink is a phone-first marketplace project for buyers, market vendors, deliver
 
 The current `main` branch includes email-and-password accounts with role-protected areas, buyer order tracking, the PostgreSQL schema and seed scripts. The public home page is still a foundation screen.
 
-Vendor product management is being completed on Feature 5 branch `feature/vendor-products` / PR #3. Product photo upload is pending the team’s choice of storage provider. Payment checkout, the Paystack webhook and live deployment are not yet implemented in this repository.
+- **Feature 1 — Marketplace and search:** not started on `main`; awaiting confirmation and a screenshot from its owner.
+- **Feature 4 — Buyer order tracking:** buyers can see their own orders on My orders and open an order to follow payment, accepted, picked up and delivered progress. Cancelled, rejected and refunded orders have clear messages. The owner reports 2/2 automated tests, lint, build, manual status checks and refused-access checks passing. See [docs/order-tracking.md](docs/order-tracking.md).
+- **Feature 5 — Vendor product manager:** being completed on branch `feature/vendor-products` / PR #3. Product photo upload is pending the team’s choice of storage provider.
+- **Feature 10 — Authentication and security:** visitors can sign up, log in and out. Protected pages and API routes check roles on the server. See [docs/auth.md](docs/auth.md).
+
+Payment checkout and the Paystack webhook are not yet implemented in this repository. A live deployment URL has not been supplied.
 
 ## Technology
 
@@ -74,6 +79,14 @@ The production build requires a valid `DATABASE_URL` in the local environment.
 
 A vendor role check is not an ownership check: data queries must also scope records to the vendor profile belonging to the signed-in user. See [docs/auth.md](docs/auth.md).
 
+## Known issues and next work
+
+- Feature 4’s seven order-status email messages are documented in `docs/content-guide.md`, but sending is not wired up and requires the vendor/rider features to call the Resend helper. There is no refunded email yet; the refunded status uses a short message.
+- Feature 10’s production rate limiting is stored in memory, which is weak for Vercel. Sign-up currently reveals whether an email is registered. Google login and an admin role-management screen are not built.
+- The owner reports the buyer-to-buyer order refusal test passed manually. Vendor-to-vendor data refusal still needs a manual check with two vendor accounts.
+- Feature 5 photo upload awaits the team’s storage-provider decision.
+- The live URL and the remaining team member names and commit links still need to be added.
+
 ## Environment variables
 
 The names and explanations are in [.env.example](.env.example). Optional seed passwords create throwaway local demo accounts. Resend values are only needed when email sending is wired up.
@@ -94,7 +107,7 @@ Current access-control and order-tracking evidence:
 |---|---|
 | Signed-out visitor opening `/vendor` is redirected to login | ![Signed-out vendor redirect](docs/screenshots/screenshot-1-signed-out-vendor-login.png) |
 | Buyer opening `/admin` is denied | ![Buyer denied on admin](docs/screenshots/screenshot-2-buyer-on-admin-denied.png) |
-| Admin can open the four role areas | ![Admin access](docs/screenshots/screenshot-3-admin-all-areas.png) |
+| Composite of four screenshots: admin opened all four role areas | ![Composite showing admin access to the four role areas](docs/screenshots/screenshot-3-admin-all-areas.png) |
 | Signed-out visitor opening orders is sent to login | ![Orders login guard](docs/screenshots/order-tracking-1-logged-out-login.png) |
 | Vendor cannot view another buyer’s order | ![Vendor denied on order](docs/screenshots/order-tracking-2-vendor-no-access.png) |
-| Buyer cannot view another buyer’s order | ![Other buyer denied](docs/screenshots/order-tracking-4-other-buyer-not-found.png) |
+| Buyer cannot view another buyer’s order; page says not found | ![Other buyer denied](docs/screenshots/order-tracking-4-other-buyer-not-found.png) |
