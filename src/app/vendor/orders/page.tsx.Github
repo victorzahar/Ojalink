@@ -1,0 +1,67 @@
+// src/app/vendor/orders/page.tsx
+import { and, eq, inArray } from "drizzle-orm";
+
+import { requireRole } from "@/lib/auth/guard";
+import { getDb } from "@/lib/db";
+import { orders, vendors } from "@/lib/db/schema";
+
+// Live status names only. "pending" is deliberately absent: the buyer hasn't paid yet.
+const GROUPS = {
+  needsAction: { title: "Needs action", statuses: ["paid"] },
+  inProgress: { title: "In progress", statuses: ["accepted", "picked_up"] },
+  done: { title: "Done", statuses: ["delivered"] },
+  history: { title: "History", statuses: ["rejected", "cancelled", "refunded"] },
+} as const;
+
+const VISIBLE_STATUSES = Object.values(GROUPS).flatMap((g) => g.statuses);
+
+function formatNaira(kobo: number) {
+  return `₦${(kobo / 100).toLocaleString("en-NG", { minimumFractionDigits: 2 })}`;
+}
+
+export default async function VendorOrdersPage() {
+  const user = await requireRole("vendor"); // admin also passes
+
+  // Admin is the only exception; everyone else sees only their vendor's orders.
+  const ownership =
+    user.role === "admin" ? undefined : eq(vendors.userId, user.id);
+
+  const rows = await getDb()
+    .select({
+      id: orders.id,
+      status: orders.status,
+      totalKobo: orders.totalKobo,
+      createdAt: orders.createdAt,
+    })
+    .from(orders)
+    .innerJoin(vendors, eq(orders.vendorId, vendors.id))
+    .where(and(ownership, inArray(orders.status, VISIBLE_STATUSES)));
+
+  return (
+    <main>
+      <h1>Orders</h1>
+      {Object.values(GROUPS).map((group) => {
+        const groupRows = rows.filter((r) =>
+          (group.statuses as readonly string[]).includes(r.status),
+        );
+        return (
+          <section key={group.title}>
+            <h2>{group.title}</h2>
+            {groupRows.length === 0 ? (
+              <p>No orders here.</p>
+            ) : (
+              <ul>
+                {groupRows.map((r) => (
+                  <li key={r.id}>
+                    Order #{r.id} · {formatNaira(r.totalKobo)} · {r.status}
+                    {/* Accept and Reject buttons are added in the next file */}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        );
+      })}
+    </main>
+  );
+}
