@@ -311,7 +311,6 @@ export const disputes = pgTable(
     reason: text("reason").notNull(),
     status: disputeStatusEnum("status").notNull().default("open"),
     resolutionNote: text("resolution_note"),
-    refundKobo: integer("refund_kobo"),
     createdAt,
   },
   (table) => [index("disputes_order_id_idx").on(table.orderId)],
