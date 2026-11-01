@@ -7,9 +7,6 @@ import { getDb } from "@/lib/db";
 import { orders, vendors } from "@/lib/db/schema";
 import { formatDateLagos, formatNaira } from "@/lib/orders/format";
 
-// Reads the signed-in user's session on every visit, so never serve a cached page.
-export const dynamic = "force-dynamic";
-
 // Live status names only. "pending" is deliberately absent: the buyer hasn't paid yet.
 const GROUPS = {
   needsAction: { title: "Needs action", statuses: ["paid"] },
