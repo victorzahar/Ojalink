@@ -15,7 +15,25 @@ const { users, vendors, products, orders, orderItems, payments, deliveries } = s
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle(pool, { schema });
 
-const orderSamples = [
+type OrderSample = {
+  id: string;
+  itemId: string;
+  paymentId: string;
+  deliveryId: string;
+  reference: string;
+  status: "pending" | "paid" | "accepted" | "rejected" | "picked_up" | "delivered" | "cancelled";
+  vendorSlug: string;
+  productSlug: string;
+  quantity: number;
+  address: string;
+  area: string;
+  createdAt: Date;
+  paidAt?: Date;
+  pickedUpAt?: Date;
+  deliveredAt?: Date;
+};
+
+const orderSamples: OrderSample[] = [
   {
     id: "40000000-0000-4000-8000-000000000001",
     itemId: "41000000-0000-4000-8000-000000000001",
@@ -121,7 +139,7 @@ const orderSamples = [
     area: "Sakponba, Benin City",
     createdAt: new Date("2026-10-31T09:00:00+01:00"),
   },
-] as const;
+];
 
 try {
   await db.transaction(async (tx) => {

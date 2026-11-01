@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { connection } from "next/server";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { formatDateLagos, formatNaira } from "@/lib/orders/format";
 import { ordersPageCopy } from "@/lib/orders/page-copy";
 import { getBuyerOrders } from "@/lib/orders/queries";
 import { orderStatusCopy } from "@/lib/orders/status-copy";
+import { OrdersLoadingSkeleton } from "@/app/orders/orders-loading-skeleton";
 
 const statusBadgeClasses: Record<keyof typeof orderStatusCopy, string> = {
   pending: "bg-accent/20 text-foreground",
@@ -25,12 +27,7 @@ const statusBadgeClasses: Record<keyof typeof orderStatusCopy, string> = {
   cancelled: "bg-destructive/10 text-destructive",
 };
 
-export default async function OrdersPage() {
-  await connection();
-
-  const buyer = await getCurrentBuyer();
-  const orders = await getBuyerOrders(buyer.id);
-
+export default function OrdersPage() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12">
       <header className="space-y-2">
@@ -39,8 +36,21 @@ export default async function OrdersPage() {
         </h1>
         <p className="text-base text-muted-foreground">{ordersPageCopy.subtitle}</p>
       </header>
+      <Suspense fallback={<OrdersLoadingSkeleton />}>
+        <BuyerOrders />
+      </Suspense>
+    </main>
+  );
+}
 
-      {orders.length === 0 ? (
+async function BuyerOrders() {
+  await connection();
+
+  const buyer = await getCurrentBuyer();
+  const orders = await getBuyerOrders(buyer.id);
+
+  return (
+    orders.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-start gap-5 py-6 sm:py-8">
             <p className="max-w-prose text-base leading-7 text-foreground">
@@ -51,7 +61,7 @@ export default async function OrdersPage() {
             </Button>
           </CardContent>
         </Card>
-      ) : (
+    ) : (
         <ul className="flex flex-col gap-4" aria-label={ordersPageCopy.title}>
           {orders.map((order) => (
             <li key={order.id}>
@@ -90,7 +100,6 @@ export default async function OrdersPage() {
             </li>
           ))}
         </ul>
-      )}
-    </main>
+    )
   );
 }
