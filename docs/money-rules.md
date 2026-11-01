@@ -49,28 +49,43 @@ shows it.
 - The webhook verifies the signature before touching `payments` or `orders`
   (see CLAUDE.md Security rules).
 
-## Payouts, refunds and the Paystack webhook (proposed until the Feature 6 owner confirms)
+## Payouts, refunds and the Paystack webhook (agreed)
 
-- Payout status table: pending, rejected, cancelled count as nothing. paid,
-  accepted, picked_up are pending payout. delivered is earned payout.
-  refunded counts as nothing.
-- Payout = subtotal_kobo - platform_fee_kobo - refunds. The delivery fee is
-  not part of the vendor payout.
-- A full refund returns the platform fee. A partial refund reduces payout
-  and fee in proportion, and the order stays delivered.
-- The server calculates all totals, never the browser. Every payout query
-  filters by the signed-in vendor, and admin is the only exception.
-- The server must check refund_kobo is never more than the order total,
-  because the database cannot.
-- Webhook: owned by the Feature 3 owner, reviewed by the Project lead. It
-  verifies the Paystack signature on the raw body first. Then in ONE
-  transaction (Neon WebSocket driver) it sets the payment to success, the
-  order to paid, and creates the delivery with status available. A repeated
-  message with the same paystack_reference must change nothing. The amount
-  Paystack reports must match total_kobo.
-- Open decisions: payouts table needed or not (Feature 6 owner), who gets
-  the delivery fee, and the refund migration (refund_kobo, refunded_at, and
-  refunded status).
+1. Payout status table: pending, rejected, cancelled count as nothing. paid,
+   accepted, picked_up are pending payout. delivered is earned payout.
+   refunded counts as nothing.
+2. Weekly payout = subtotal_kobo - platform_fee_kobo - refund_kobo, never
+   below 0. All amounts are integer kobo. The delivery fee is not part of
+   the vendor payout.
+3. Refunds are recorded on the order (orders.refund_kobo and
+   orders.refunded_at), not on the dispute. A partial refund keeps the order
+   delivered and reduces that order's payout by the refund. The platform fee
+   is not changed by a partial refund. A full refund moves the order to
+   refunded and it drops out of earnings. Only admin can issue a refund, and
+   all the status changes happen in one transaction.
+4. The database checks refund_kobo <= total_kobo on the order row, and the
+   server validates it before saving.
+5. A week runs Monday to Sunday in Nigerian time (Africa/Lagos), grouped by
+   orders.delivered_at. delivered_at is set by the server in the same
+   transaction that sets the order to delivered.
+6. Payouts table: id, vendor_id, week_start (a Monday), amount_kobo, status
+   (unpaid or paid), paid_at, paid_by, created_at, updated_at. Unique on
+   (vendor_id, week_start), so a vendor cannot be paid twice for the same
+   week. Only admin creates payouts and marks them paid. A vendor can only
+   read their own. The amount is frozen when created. A refund after a paid
+   week is shown to admin as an adjustment and handled by hand (v1 limit).
+7. The server calculates all totals, never the browser. Every payout query
+   filters by the signed-in vendor, and admin is the only exception.
+8. Webhook: owned by the Feature 3 owner, reviewed by the Project lead. It
+   verifies the Paystack signature on the raw body first. Then in ONE
+   transaction (Neon WebSocket driver) it sets the payment to success, the
+   order to paid, and creates the delivery with status available. A repeated
+   message with the same paystack_reference must change nothing. The amount
+   Paystack reports must match total_kobo.
+9. Open decisions: who gets the delivery fee (rider or OjaLink). Note: the
+   schema change (orders.delivered_at, refund_kobo, refunded_at, the payouts
+   table, and refunded in the order and payment statuses) is one migration
+   written by the Project lead. Nobody else edits schema.ts or a migration.
 
 ## Checklist for every money review
 
@@ -85,4 +100,6 @@ shows it.
 - [ ] Payouts are calculated on the server and every payout query is
       filtered by the signed-in vendor (admin is the only exception).
 - [ ] The Paystack webhook is one transaction and idempotent.
-- [ ] Refunds never exceed the order total.
+- [ ] Refunds never exceed the order total: `refund_kobo <= total_kobo`,
+      checked by a database CHECK on the order row and by the server before
+      saving.
