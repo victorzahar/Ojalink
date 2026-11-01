@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  date,
   index,
   integer,
   pgEnum,
@@ -40,6 +41,7 @@ export const orderStatusEnum = pgEnum("order_status", [
   "picked_up",
   "delivered",
   "cancelled",
+  "refunded",
 ]);
 
 export const deliveryStatusEnum = pgEnum("delivery_status", [
@@ -53,6 +55,12 @@ export const paymentStatusEnum = pgEnum("payment_status", [
   "pending",
   "success",
   "failed",
+  "refunded",
+]);
+
+export const payoutStatusEnum = pgEnum("payout_status", [
+  "unpaid",
+  "paid",
 ]);
 
 export const disputeStatusEnum = pgEnum("dispute_status", [
@@ -157,6 +165,9 @@ export const orders = pgTable(
     subtotalKobo: integer("subtotal_kobo").notNull(),
     totalKobo: integer("total_kobo").notNull(),
     status: orderStatusEnum("status").notNull().default("pending"),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    refundKobo: integer("refund_kobo").notNull().default(0),
+    refundedAt: timestamp("refunded_at", { withTimezone: true }),
     createdAt,
     updatedAt,
   },
@@ -167,6 +178,8 @@ export const orders = pgTable(
     check("orders_platform_fee_kobo_nonnegative", sql`${table.platformFeeKobo} >= 0`),
     check("orders_subtotal_kobo_nonnegative", sql`${table.subtotalKobo} >= 0`),
     check("orders_total_kobo_nonnegative", sql`${table.totalKobo} >= 0`),
+    check("orders_refund_kobo_nonnegative", sql`${table.refundKobo} >= 0`),
+    check("orders_refund_kobo_not_over_total", sql`${table.refundKobo} <= ${table.totalKobo}`),
   ],
 );
 
@@ -231,6 +244,33 @@ export const payments = pgTable(
   (table) => [
     uniqueIndex("payments_paystack_reference_unique").on(table.paystackReference),
     index("payments_order_id_idx").on(table.orderId),
+  ],
+);
+
+export const payouts = pgTable(
+  "payouts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    vendorId: uuid("vendor_id")
+      .notNull()
+      .references(() => vendors.id, { onDelete: "restrict" }),
+    weekStart: date("week_start").notNull(),
+    amountKobo: integer("amount_kobo").notNull(),
+    status: payoutStatusEnum("status").notNull().default("unpaid"),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    paidBy: uuid("paid_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    uniqueIndex("payouts_vendor_id_week_start_unique").on(table.vendorId, table.weekStart),
+    index("payouts_vendor_id_idx").on(table.vendorId),
+    check("payouts_amount_kobo_nonnegative", sql`${table.amountKobo} >= 0`),
+    check("payouts_paid_at_when_paid", sql`${table.status} <> 'paid' OR ${table.paidAt} IS NOT NULL`),
+    check(
+      "payouts_week_start_is_monday",
+      sql`extract(isodow from ${table.weekStart}) = 1`,
+    ),
   ],
 );
 
