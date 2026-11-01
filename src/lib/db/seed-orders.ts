@@ -170,6 +170,47 @@ const orderSamples: OrderSample[] = [
     area: "Sakponba, Benin City",
     createdAt: new Date("2026-10-31T09:00:00+01:00"),
   },
+  {
+    // Delivered LAST WEEK (before the current payout week): lands in the
+    //Africa/Lagos week starting Monday 2026-10-19, so the delivered orders
+    // page and payout grouping have two different weeks to show.
+    id: "40000000-0000-4000-8000-000000000009",
+    itemId: "41000000-0000-4000-8000-000000000009",
+    paymentId: "42000000-0000-4000-8000-000000000009",
+    deliveryId: "43000000-0000-4000-8000-000000000009",
+    reference: "ojalink-demo-order-delivered-lastweek-009",
+    status: "delivered",
+    vendorSlug: "kingsway-mobile",
+    productSlug: "wired-earphones-microphone",
+    quantity: 1,
+    address: "17 Akpakpava Road, near Oba Market",
+    area: "Ring Road, Benin City",
+    createdAt: new Date("2026-10-22T10:05:00+01:00"),
+    paidAt: new Date("2026-10-22T10:08:00+01:00"),
+    pickedUpAt: new Date("2026-10-22T11:30:00+01:00"),
+    deliveredAt: new Date("2026-10-22T12:40:00+01:00"),
+  },
+  {
+    // this sample tests that weeks are grouped in Africa/Lagos time:
+    // delivered_at is Monday 00:30 Lagos (+01:00), which is Sunday 23:30 UTC,
+    // so a UTC-based week grouping would put it in the PREVIOUS week while
+    // Lagos time correctly starts the week of Monday 2026-10-26.
+    id: "40000000-0000-4000-8000-000000000010",
+    itemId: "41000000-0000-4000-8000-000000000010",
+    paymentId: "42000000-0000-4000-8000-000000000010",
+    deliveryId: "43000000-0000-4000-8000-000000000010",
+    reference: "ojalink-demo-order-delivered-lagos-week-010",
+    status: "delivered",
+    vendorSlug: "uselu-home-stores",
+    productSlug: "big-bull-rice-5kg",
+    quantity: 2,
+    address: "32 Ekenwan Road, by Adesuwa Junction",
+    area: "Oredo, Benin City",
+    createdAt: new Date("2026-10-25T18:50:00+01:00"),
+    paidAt: new Date("2026-10-25T18:52:00+01:00"),
+    pickedUpAt: new Date("2026-10-25T19:40:00+01:00"),
+    deliveredAt: new Date("2026-10-26T00:30:00+01:00"),
+  },
 ];
 
 try {
@@ -281,7 +322,7 @@ try {
     }
   });
 
-  console.log("Order seed complete: 8 sample orders, one per status plus a delivered order with a partial refund.");
+  console.log("Order seed complete: 10 sample orders, one per status plus delivered orders (last week, the Lagos-time week edge, and a partial refund).");
 } finally {
   await pool.end();
 }
