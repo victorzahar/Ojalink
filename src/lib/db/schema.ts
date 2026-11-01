@@ -267,6 +267,10 @@ export const payouts = pgTable(
     index("payouts_vendor_id_idx").on(table.vendorId),
     check("payouts_amount_kobo_nonnegative", sql`${table.amountKobo} >= 0`),
     check("payouts_paid_at_when_paid", sql`${table.status} <> 'paid' OR ${table.paidAt} IS NOT NULL`),
+    check(
+      "payouts_week_start_is_monday",
+      sql`extract(isodow from ${table.weekStart}) = 1`,
+    ),
   ],
 );
 

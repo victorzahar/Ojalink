@@ -12,7 +12,8 @@ CREATE TABLE "payouts" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "payouts_amount_kobo_nonnegative" CHECK ("payouts"."amount_kobo" >= 0),
-	CONSTRAINT "payouts_paid_at_when_paid" CHECK ("payouts"."status" <> 'paid' OR "payouts"."paid_at" IS NOT NULL)
+	CONSTRAINT "payouts_paid_at_when_paid" CHECK ("payouts"."status" <> 'paid' OR "payouts"."paid_at" IS NOT NULL),
+	CONSTRAINT "payouts_week_start_is_monday" CHECK (extract(isodow from "payouts"."week_start") = 1)
 );
 --> statement-breakpoint
 ALTER TABLE "orders" ADD COLUMN "delivered_at" timestamp with time zone;--> statement-breakpoint
@@ -24,8 +25,9 @@ CREATE UNIQUE INDEX "payouts_vendor_id_week_start_unique" ON "payouts" USING btr
 CREATE INDEX "payouts_vendor_id_idx" ON "payouts" USING btree ("vendor_id");--> statement-breakpoint
 ALTER TABLE "orders" ADD CONSTRAINT "orders_refund_kobo_nonnegative" CHECK ("orders"."refund_kobo" >= 0);--> statement-breakpoint
 ALTER TABLE "orders" ADD CONSTRAINT "orders_refund_kobo_not_over_total" CHECK ("orders"."refund_kobo" <= "orders"."total_kobo");--> statement-breakpoint
--- Backfill: mark conversion from the baseline data.
--- Orders already delivered get delivered_at from their last update; refund_kobo
--- defaults to 0, which passes both refund checks for every existing row.
+-- Backfill for pre-existing seed data (a data change, not schema, so the
+-- snapshot above stays valid). Orders already delivered get delivered_at
+-- from their last update; refund_kobo defaults to 0, which passes both
+-- refund checks for every existing row.
 UPDATE "orders" SET "delivered_at" = "updated_at"
 WHERE "status" = 'delivered' AND "delivered_at" IS NULL;

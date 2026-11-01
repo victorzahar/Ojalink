@@ -1,5 +1,5 @@
 {
-  "id": "f76e8431-8210-4c73-b22d-16984fca5eba",
+  "id": "ca7ef8e0-5c75-4b61-87c3-d8722e6eff66",
   "prevId": "fb774d84-fd94-4920-ad85-fe8aa26cf59b",
   "version": "7",
   "dialect": "postgresql",
@@ -1030,6 +1030,10 @@
         "payouts_paid_at_when_paid": {
           "name": "payouts_paid_at_when_paid",
           "value": "\"payouts\".\"status\" <> 'paid' OR \"payouts\".\"paid_at\" IS NOT NULL"
+        },
+        "payouts_week_start_is_monday": {
+          "name": "payouts_week_start_is_monday",
+          "value": "extract(isodow from \"payouts\".\"week_start\") = 1"
         }
       },
       "isRLSEnabled": false
