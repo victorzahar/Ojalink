@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { connection } from "next/server";
 import { notFound } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { formatDateTimeLagos, formatNaira } from "@/lib/orders/format";
 import { ordersPageCopy } from "@/lib/orders/page-copy";
-import { getCurrentBuyer } from "@/lib/orders/current-buyer";
+import { requireRole } from "@/lib/auth/guard";
 import { getBuyerOrderById } from "@/lib/orders/queries";
 import { orderStatusCopy } from "@/lib/orders/status-copy";
 import { OrdersLoadingSkeleton } from "@/app/orders/orders-loading-skeleton";
@@ -32,9 +31,13 @@ const completedStepsByStatus = {
 type OrderStatus = keyof typeof orderStatusCopy;
 type OrderRouteParams = PageProps<"/orders/[id]">["params"];
 
-export default function OrderDetailPage({
+export const instant = false;
+
+export default async function OrderDetailPage({
   params,
 }: { params: OrderRouteParams }) {
+  const user = await requireRole("buyer");
+
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 sm:py-10">
       <div>
@@ -49,7 +52,7 @@ export default function OrderDetailPage({
         </h1>
       </header>
       <Suspense fallback={<OrdersLoadingSkeleton />}>
-        <BuyerOrderDetails params={params} />
+        <BuyerOrderDetails params={params} buyerId={user.id} />
       </Suspense>
     </main>
   );
@@ -57,12 +60,10 @@ export default function OrderDetailPage({
 
 async function BuyerOrderDetails({
   params,
-}: { params: OrderRouteParams }) {
-  await connection();
-
+  buyerId,
+}: { params: OrderRouteParams; buyerId: string }) {
   const { id } = await params;
-  const buyer = await getCurrentBuyer();
-  const order = await getBuyerOrderById(buyer.id, id);
+  const order = await getBuyerOrderById(buyerId, id);
 
   if (!order) {
     notFound();

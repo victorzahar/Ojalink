@@ -1,9 +1,10 @@
 import "server-only";
 
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 import { getDb } from "@/lib/db";
 import { deliveries, orderItems, orders, payments, vendors } from "@/lib/db/schema";
+import { buyerOrderScope, buyerOrdersScope } from "@/lib/orders/ownership";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -19,7 +20,7 @@ export async function getBuyerOrders(buyerId: string) {
     })
     .from(orders)
     .innerJoin(vendors, eq(orders.vendorId, vendors.id))
-    .where(eq(orders.buyerId, buyerId))
+    .where(buyerOrdersScope(buyerId))
     .orderBy(desc(orders.createdAt));
 
   if (buyerOrders.length === 0) {
@@ -30,7 +31,7 @@ export async function getBuyerOrders(buyerId: string) {
     .select({ orderId: orderItems.orderId, productName: orderItems.productName })
     .from(orderItems)
     .innerJoin(orders, eq(orderItems.orderId, orders.id))
-    .where(eq(orders.buyerId, buyerId))
+    .where(buyerOrdersScope(buyerId))
     .orderBy(orderItems.createdAt);
 
   const itemsByOrder = new Map<string, string[]>();
@@ -74,17 +75,14 @@ export async function getBuyerOrderById(buyerId: string, orderId: string) {
     })
     .from(orders)
     .innerJoin(vendors, eq(orders.vendorId, vendors.id))
-    .where(and(eq(orders.id, orderId), eq(orders.buyerId, buyerId)))
+    .where(buyerOrderScope(buyerId, orderId))
     .limit(1);
 
   if (!order) {
     return null;
   }
 
-  const buyerOrderCondition = and(
-    eq(orders.id, orderId),
-    eq(orders.buyerId, buyerId),
-  );
+  const buyerOrderCondition = buyerOrderScope(buyerId, orderId);
 
   const [items, [payment], [delivery]] = await Promise.all([
     db

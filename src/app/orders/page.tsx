@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { connection } from "next/server";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -10,12 +9,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getCurrentBuyer } from "@/lib/orders/current-buyer";
+import { requireRole } from "@/lib/auth/guard";
 import { formatDateLagos, formatNaira } from "@/lib/orders/format";
 import { ordersPageCopy } from "@/lib/orders/page-copy";
 import { getBuyerOrders } from "@/lib/orders/queries";
 import { orderStatusCopy } from "@/lib/orders/status-copy";
 import { OrdersLoadingSkeleton } from "@/app/orders/orders-loading-skeleton";
+
+export const instant = false;
 
 const statusBadgeClasses: Record<keyof typeof orderStatusCopy, string> = {
   pending: "bg-accent/20 text-foreground",
@@ -27,7 +28,9 @@ const statusBadgeClasses: Record<keyof typeof orderStatusCopy, string> = {
   cancelled: "bg-destructive/10 text-destructive",
 };
 
-export default function OrdersPage() {
+export default async function OrdersPage() {
+  const user = await requireRole("buyer");
+
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12">
       <header className="space-y-2">
@@ -37,17 +40,14 @@ export default function OrdersPage() {
         <p className="text-base text-muted-foreground">{ordersPageCopy.subtitle}</p>
       </header>
       <Suspense fallback={<OrdersLoadingSkeleton />}>
-        <BuyerOrders />
+        <BuyerOrders buyerId={user.id} />
       </Suspense>
     </main>
   );
 }
 
-async function BuyerOrders() {
-  await connection();
-
-  const buyer = await getCurrentBuyer();
-  const orders = await getBuyerOrders(buyer.id);
+async function BuyerOrders({ buyerId }: { buyerId: string }) {
+  const orders = await getBuyerOrders(buyerId);
 
   return (
     orders.length === 0 ? (

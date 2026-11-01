@@ -4,7 +4,13 @@ import { drizzle } from "drizzle-orm/neon-serverless";
 import { Pool } from "@neondatabase/serverless";
 import * as schema from "@/lib/db/schema";
 
+if (process.env.NODE_ENV === "production") {
+  throw new Error("seed-orders refuses to run in production");
+}
+
 config({ path: ".env.local" });
+
+// This seed only writes sample database rows; it does not import email code or send email.
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is required to seed sample orders.");
