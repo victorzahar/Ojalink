@@ -27,4 +27,8 @@ export const orderStatusCopy = {
     title: "Order cancelled",
     message: "This order was cancelled.",
   },
+  refunded: {
+    title: "Order refunded",
+    message: "This order was refunded.",
+  },
 } as const;

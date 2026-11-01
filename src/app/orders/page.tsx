@@ -26,6 +26,7 @@ const statusBadgeClasses: Record<keyof typeof orderStatusCopy, string> = {
   picked_up: "bg-muted text-foreground",
   delivered: "bg-primary/10 text-primary",
   cancelled: "bg-destructive/10 text-destructive",
+  refunded: "bg-destructive/10 text-destructive",
 };
 
 export default async function OrdersPage() {
