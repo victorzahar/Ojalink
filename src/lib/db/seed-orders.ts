@@ -37,6 +37,8 @@ type OrderSample = {
   paidAt?: Date;
   pickedUpAt?: Date;
   deliveredAt?: Date;
+  refundKobo?: number;
+  refundedAt?: Date;
 };
 
 const orderSamples: OrderSample[] = [
@@ -132,6 +134,29 @@ const orderSamples: OrderSample[] = [
     deliveredAt: new Date("2026-10-30T15:42:00+01:00"),
   },
   {
+    // Delivered with a PARTIAL refund: still `delivered` (not `refunded`),
+    // totals unchanged; the refund is recorded on the order. Keeps the
+    // `refund_kobo <= total_kobo` and `refund_kobo >= 0` checks exercised
+    // by a real row.
+    id: "40000000-0000-4000-8000-000000000008",
+    itemId: "41000000-0000-4000-8000-000000000008",
+    paymentId: "42000000-0000-4000-8000-000000000008",
+    deliveryId: "43000000-0000-4000-8000-000000000008",
+    reference: "ojalink-demo-order-partial-refund-008",
+    status: "delivered",
+    vendorSlug: "uselu-home-stores",
+    productSlug: "big-bull-rice-5kg",
+    quantity: 1,
+    address: "32 Ekenwan Road, by Adesuwa Junction",
+    area: "Oredo, Benin City",
+    createdAt: new Date("2026-10-30T17:10:00+01:00"),
+    paidAt: new Date("2026-10-30T17:12:00+01:00"),
+    pickedUpAt: new Date("2026-10-30T18:05:00+01:00"),
+    deliveredAt: new Date("2026-10-30T18:40:00+01:00"),
+    refundKobo: 30000, // ₦300 partial refund, well below total_kobo
+    refundedAt: new Date("2026-10-31T09:15:00+01:00"),
+  },
+  {
     id: "40000000-0000-4000-8000-000000000007",
     itemId: "41000000-0000-4000-8000-000000000007",
     paymentId: "42000000-0000-4000-8000-000000000007",
@@ -199,6 +224,9 @@ try {
           subtotalKobo,
           totalKobo,
           status: sample.status,
+          deliveredAt: sample.deliveredAt,
+          refundKobo: sample.refundKobo ?? 0,
+          refundedAt: sample.refundedAt,
           createdAt: sample.createdAt,
           updatedAt: sample.createdAt,
         })
@@ -253,7 +281,7 @@ try {
     }
   });
 
-  console.log("Order seed complete: 7 sample orders, one for each order status.");
+  console.log("Order seed complete: 8 sample orders, one per status plus a delivered order with a partial refund.");
 } finally {
   await pool.end();
 }
