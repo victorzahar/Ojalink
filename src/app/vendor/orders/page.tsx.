@@ -1,0 +1,91 @@
+// src/app/vendor/orders/page.tsx
+import { and, desc, eq, inArray } from "drizzle-orm";
+
+import { OrderActions } from "@/components/vendor-orders/order-actions";
+import { requireRole } from "@/lib/auth/guard";
+import { getDb } from "@/lib/db";
+import { orders, vendors } from "@/lib/db/schema";
+import { formatDateLagos, formatNaira } from "@/lib/orders/format";
+
+// Live status names only. "pending" is deliberately absent: the buyer hasn't paid yet.
+const GROUPS = {
+  needsAction: { title: "Needs action", statuses: ["paid"] },
+  inProgress: { title: "In progress", statuses: ["accepted", "picked_up"] },
+  done: { title: "Done", statuses: ["delivered"] },
+  history: { title: "History", statuses: ["rejected", "cancelled", "refunded"] },
+} as const;
+
+const VISIBLE_STATUSES = Object.values(GROUPS).flatMap((g) => g.statuses);
+
+const STATUS_LABELS: Record<string, string> = {
+  paid: "Paid",
+  accepted: "Accepted",
+  picked_up: "Picked up",
+  delivered: "Delivered",
+  rejected: "Rejected",
+  cancelled: "Cancelled",
+  refunded: "Refunded",
+};
+
+// History grows forever, so only show the newest few for now.
+const HISTORY_LIMIT = 20;
+
+// First 8 characters of the order ID in capitals, e.g. "3F9A1C2B".
+function shortRef(id: string) {
+  return id.slice(0, 8).toUpperCase();
+}
+
+export default async function VendorOrdersPage() {
+  const user = await requireRole("vendor"); // admin also passes
+
+  // Admin is the only exception; everyone else sees only their vendor's orders.
+  const ownership =
+    user.role === "admin" ? undefined : eq(vendors.userId, user.id);
+
+  // Newest first. "Needs action" is flipped below so the longest-waiting order is on top.
+  const rows = await getDb()
+    .select({
+      id: orders.id,
+      status: orders.status,
+      totalKobo: orders.totalKobo,
+      createdAt: orders.createdAt,
+    })
+    .from(orders)
+    .innerJoin(vendors, eq(orders.vendorId, vendors.id))
+    .where(and(ownership, inArray(orders.status, VISIBLE_STATUSES)))
+    .orderBy(desc(orders.createdAt));
+
+  return (
+    <main>
+      <h1>Orders</h1>
+      {Object.entries(GROUPS).map(([key, group]) => {
+        const matching = rows.filter((r) =>
+          (group.statuses as readonly string[]).includes(r.status),
+        );
+        let shown = key === "needsAction" ? [...matching].reverse() : matching;
+        if (key === "history") shown = shown.slice(0, HISTORY_LIMIT);
+
+        return (
+          <section key={key}>
+            <h2>
+              {group.title} ({matching.length})
+            </h2>
+            {shown.length === 0 ? (
+              <p>No orders here.</p>
+            ) : (
+              <ul>
+                {shown.map((r) => (
+                  <li key={r.id}>
+                    Order {shortRef(r.id)} · {formatDateLagos(r.createdAt)} ·{" "}
+                    {formatNaira(r.totalKobo)} · {STATUS_LABELS[r.status] ?? r.status}
+                    {r.status === "paid" && <OrderActions orderId={r.id} />}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        );
+      })}
+    </main>
+  );
+}
