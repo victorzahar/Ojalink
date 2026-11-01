@@ -27,16 +27,15 @@ shows it.
    `totalKobo = subtotalKobo + deliveryFeeKobo + platformFeeKobo`.
 2. **Convert to Naira only inside display helpers.** Format with a helper
    like `formatNaira(kobo)` → `Intl` `en-NG`/NGN → `₦5,000.00`; never
-   `kobo / 100` inline in a component. (The concrete helper is proposed in
-   open PR #3 and PR #4 — see those PRs; it is not on main yet.)
+   `kobo / 100` inline in a component. The concrete helper is on main in
+   `src/lib/orders/format.ts` (merged from PR #4).
 3. **Never round for storage.** The database sees exact integers. The only
    place a "round" exists is the 2-decimal display format.
 4. **Reject bad input on the server.** Validate the Naira string with a
    pattern, not `parseFloat`: optional thousands commas, up to two decimals.
    The `nairaToKobo()` helper (in `src/lib/vendor-products/validation.ts`)
-   is proposed in open PR #3 and PR #4 — see those PRs; it is not on main
-   yet. Until it merges, follow the same pattern rather than writing a
-   second variant.
+   is in open PR #3 — see that PR; until it merges, follow the same pattern
+   rather than writing a second variant.
 5. **Guard the integer.** A computed kobo amount must be
    `Number.isSafeInteger(amount)` and `>= 0` before it is stored. A negative
    price or fee is always a bug, never a refund.
@@ -62,7 +61,8 @@ shows it.
    delivered and reduces that order's payout by the refund. The platform fee
    is not changed by a partial refund. A full refund moves the order to
    refunded and it drops out of earnings. Only admin can issue a refund, and
-   all the status changes happen in one transaction.
+   all the status changes happen in one transaction. The feature owner will
+   wire the refund action to orders.refund_kobo.
 4. The database checks refund_kobo <= total_kobo on the order row, and the
    server validates it before saving.
 5. A week runs Monday to Sunday in Nigerian time (Africa/Lagos), grouped by
@@ -84,8 +84,10 @@ shows it.
    Paystack reports must match total_kobo.
 9. Open decisions: who gets the delivery fee (rider or OjaLink). Note: the
    schema change (orders.delivered_at, refund_kobo, refunded_at, the payouts
-   table, and refunded in the order and payment statuses) is one migration
-   written by the Project lead. Nobody else edits schema.ts or a migration.
+   table, and refunded in the order and payment statuses) is on main (migration
+   0001_sloppy_reavers.sql, merged in PR #6). The feature owner will wire the
+   refund action to orders.refund_kobo. Nobody else edits schema.ts or a
+   migration.
 
 ## Checklist for every money review
 
