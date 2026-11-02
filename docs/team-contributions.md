@@ -4,22 +4,22 @@ This roster combines the team assignment screenshot with the ownership details r
 
 | Teammate | Feature | Non-code role | Commit / PR link |
 |---|---|---|---|
-| Michael Iyoha (T4Y-0769) | 5 — Vendor product manager | 9 — Docs & README | [PR #3](https://github.com/victorzahar/Ojalink/pull/3) — pending review and merge |
-| Feature 1 owner — to confirm | 1 — Marketplace and search (not started on main) | Project lead | Awaiting owner confirmation and screenshot |
-| Edegbe Esohe Favour (T4Y-1220) | 2 — Vendor storefronts | Client & research lead | [feature/vendor-storefront](https://github.com/victorzahar/Ojalink/tree/feature/vendor-storefront) — screenshot and Neon data check pending |
+| Michael Iyoha | 5 — Vendor product manager (merged) | 9 — Docs & README | [PR #3](https://github.com/victorzahar/Ojalink/pull/3) — merged |
+| Feature 1 owner — to confirm | 1 — Marketplace and search (merged) | Project lead | [PR #12](https://github.com/victorzahar/Ojalink/pull/12) — merged; awaiting owner confirmation |
+| Edegbe Esohe Favour | 2 — Vendor storefronts | Client & research lead | [feature/vendor-storefront](https://github.com/victorzahar/Ojalink/tree/feature/vendor-storefront) — screenshot and Neon data check pending |
 | To confirm | 3 — Cart and checkout | UX & wireframes | Add link |
-| Humphrey Uwagboe Igbinore (T4Y-0163) | 4 — Buyer order tracking | Content writer | [PR #4](https://github.com/victorzahar/Ojalink/pull/4); evidence: [docs/order-tracking.md](order-tracking.md) |
-| Egbon Aisosa (T4Y-1242) | 6 — Vendor orders and payouts | QA test lead | [feature/vendor-order-payouts](https://github.com/victorzahar/Ojalink/tree/feature/vendor-order-payouts) — code pushed; build and tests pending |
-| Iyen Monica (T4Y-0237) | 7 — Rider app | Accessibility & mobile reviewer | Feature branch / PR link to be supplied; implementation status not yet reported |
-| Ajari Obed (T4Y-1250) | 8 — Admin and disputes | Security & access tester | [feature/admin-disputes](https://github.com/victorzahar/Ojalink/tree/feature/admin-disputes) — owner reports access tests not run; refund migration not applied to their database |
+| Humphrey Uwagboe Igbinore | 4 — Buyer order tracking (merged) | Content writer | [PR #4](https://github.com/victorzahar/Ojalink/pull/4) — merged; evidence: [docs/order-tracking.md](order-tracking.md) |
+| Egbon Aisosa | 6 — Vendor orders and payouts (merged) | QA test lead | [PR #9](https://github.com/victorzahar/Ojalink/pull/9) — merged |
+| Iyen Monica | 7 — Rider app (merged) | Accessibility & mobile reviewer | [PR #11](https://github.com/victorzahar/Ojalink/pull/11) — merged |
+| Ajari Obed | 8 — Admin and disputes (merged) | Security & access tester | [PR #8](https://github.com/victorzahar/Ojalink/pull/8) — merged; label fix in PR #13 |
 | To confirm | 9 — Notifications and automations | Docs & README | Add link |
 | Zahar | 10 — Accounts, roles and security | Pitch & demo lead | [PR #2](https://github.com/victorzahar/Ojalink/pull/2); screenshots in [docs/screenshots](screenshots/) |
 
 ## Feature notes received
 
-### Feature 5 — Vendor product manager (Michael Iyoha, T4Y-0769)
+### Feature 5 — Vendor product manager (Michael Iyoha)
 
-Vendors can list, add and edit their own products, set Naira prices and stock, and mark products available or sold out. Server-side checks scope product access to the signed-in vendor; creating products requires vendor approval. Photo upload is waiting for the team to choose a storage provider. Work is on [PR #3](https://github.com/victorzahar/Ojalink/pull/3), pending review and merge.
+Vendors can list, add and edit their own products, set Naira prices and stock, and mark products available or sold out. Server-side checks scope product access to the signed-in vendor; creating products requires vendor approval. Photo upload is waiting for the team to choose a storage provider. Merged in [PR #3](https://github.com/victorzahar/Ojalink/pull/3).
 
 ### Feature 2 — Vendor storefronts
 
@@ -39,17 +39,17 @@ Known issues: the seven status email messages are written in [docs/content-guide
 
 ### Feature 6 — Vendor orders and payouts
 
-Vendors should see their own paid orders, accept or reject each order, and view weekly payout summaries (gross, commission and net) in Naira. The owner reports the code is pushed to [feature/vendor-order-payouts](https://github.com/victorzahar/Ojalink/tree/feature/vendor-order-payouts), but it has not been built or run yet and no screenshot is available. Planned tests cover vendor-only ownership, refusal of logged-out/buyer/rider users, accepting only paid orders, and payout arithmetic in kobo. Results are pending.
+Merged in [PR #9](https://github.com/victorzahar/Ojalink/pull/9). Vendors see their own orders grouped by status and can accept or reject paid orders with one race-safe conditional update scoped to their vendor profile. The `payouts` table enforces one payout per vendor and week (Monday, Lagos time); the weekly payout calculation workflow itself is still future work (see [docs/money-rules.md](money-rules.md)).
 
-### Feature 7 — Rider app (Iyen Monica, T4Y-0237)
+### Feature 7 — Rider app (Iyen Monica)
 
-The assignment calls for a rider-only phone app with a ready-for-pickup order list, vendor pickup and buyer delivery details, an accept-delivery action that prevents two riders claiming the same order, large status actions for accepted/picked up/delivered, delivery history and earnings in Naira, and an online/offline toggle. The owner’s implementation status, branch and test results have not yet been reported.
+Merged in [PR #11](https://github.com/victorzahar/Ojalink/pull/11). The rider app has a phone-first job list, accept/picked-up/delivered actions (one transaction per status flip), delivery history and a seed rider account. Online/offline toggle, proof photos and rider earnings are not built yet.
 
 As Accessibility & mobile reviewer, Iyen checks team pages for 44px-or-larger tap targets, body text of at least 16px, readable colour contrast, visible form labels, image alt text, usability on a 360px Android screen and slow-3G behavior, plus Lighthouse accessibility before merge.
 
 ### Feature 8 — Admin and disputes
 
-The owner describes an admin area for vendor approvals, dispute review and updates, user browsing and platform stats. Access should be admin-only; checks as admin, buyer and signed-out visitor have not yet been run in this session. The owner reports the refund migration has not been applied to their database. Verify the target database and migration state before testing refunds.
+Merged in [PR #8](https://github.com/victorzahar/Ojalink/pull/8), with the sales label fix in [PR #13](https://github.com/victorzahar/Ojalink/pull/13). Admins approve or reject vendors, manage disputes (a resolution note is required to resolve; refund status stays with the separate refund workflow), read-only users list and stats where sales are shown as **Paid sales**. The migration is the single 0001 schema migration; see [docs/feature-8-admin-sitemap.md](feature-8-admin-sitemap.md).
 
 ### Feature 10 — Authentication and security
 
@@ -61,7 +61,7 @@ Known issues: production rate limiting is in memory and weak for Vercel; sign-up
 
 ## Submission checklist
 
-- [ ] Confirm the Feature 1 status with its owner; add a screenshot only if the marketplace page exists.
+- [ ] Confirm the Feature 1 owner’s name; marketplace screenshots can be captured from `/marketplace` (merged).
 - [ ] Add the remaining teammate names.
 - [ ] Replace “Add link” with each teammate’s merged commit or pull request.
 - [ ] Add the final live-site URL to the README after deployment.
