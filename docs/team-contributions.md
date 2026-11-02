@@ -1,21 +1,29 @@
 # Team contributions and hand-in checklist
 
-This roster combines the team assignment screenshot with the ownership details received so far. Replace “To confirm” only after each teammate confirms their name and task. The screenshot pairs features with non-code roles; Snow separately confirmed a personal assignment of Feature 5 plus Role 9 (Docs & README).
+This roster combines the team assignment screenshot with the ownership details received so far. Replace “To confirm” only after each teammate confirms their name and task. Snow separately confirmed a personal assignment of Feature 5 plus Role 9 (Docs & README).
 
 | Teammate | Feature | Non-code role | Commit / PR link |
 |---|---|---|---|
 | Snow (@snow-sud0) | 5 — Vendor product manager | 9 — Docs & README | [PR #3](https://github.com/victorzahar/Ojalink/pull/3) — pending review and merge |
 | Feature 1 owner — to confirm | 1 — Marketplace and search (not started on main) | Project lead | Awaiting owner confirmation and screenshot |
-| To confirm | 2 — Vendor storefronts | Client & research lead | Add link |
+| Edegbe Esohe Favour (T4Y-1220) | 2 — Vendor storefronts | Client & research lead | [feature/vendor-storefront](https://github.com/victorzahar/Ojalink/tree/feature/vendor-storefront) — screenshot and Neon data check pending |
 | To confirm | 3 — Cart and checkout | UX & wireframes | Add link |
 | Humphrey Uwagboe Igbinore (T4Y-0163) | 4 — Buyer order tracking | Content writer | [PR #4](https://github.com/victorzahar/Ojalink/pull/4); evidence: [docs/order-tracking.md](order-tracking.md) |
-| To confirm | 6 — Vendor orders and payouts | QA test lead | Add link |
+| Egbon Aisosa (T4Y-1242) | 6 — Vendor orders and payouts | QA test lead | [feature/vendor-order-payouts](https://github.com/victorzahar/Ojalink/tree/feature/vendor-order-payouts) — code pushed; build and tests pending |
 | To confirm | 7 — Rider app | Accessibility & mobile reviewer | Add link |
-| To confirm | 8 — Admin and disputes | Security & access tester | Add link |
+| Ajari Obed (T4Y-1250) | 8 — Admin and disputes | Security & access tester | [feature/admin-disputes](https://github.com/victorzahar/Ojalink/tree/feature/admin-disputes) — owner reports access tests not run; refund migration not applied to their database |
 | To confirm | 9 — Notifications and automations | Docs & README | Add link |
 | Zahar | 10 — Accounts, roles and security | Pitch & demo lead | [PR #2](https://github.com/victorzahar/Ojalink/pull/2); screenshots in [docs/screenshots](screenshots/) |
 
 ## Feature notes received
+
+### Feature 2 — Vendor storefronts
+
+The owner reports a public `/vendors/[slug]` page for approved vendors with shop name, market and area, description, available products and prices, and reviews from delivered orders. Cart actions are placeholders; buyer accounts and checkout are not included in this feature.
+
+The owner could not capture a working screenshot because `/vendors/adaeze-fabrics` currently fails its database query. The cause has not been confirmed by querying Neon. Earlier focused tests, lint and a production build passed, but did not verify the storefront against live Neon data.
+
+After database setup, check an approved vendor with products, a missing or unapproved vendor, and empty product/review states. Capture the page at phone width.
 
 ### Feature 4 — Buyer order tracking
 
@@ -24,6 +32,14 @@ Buyers can see their own orders on My orders and open any order to follow its pr
 The owner reports 2/2 automated tests, lint and build passing, plus manual checks of order statuses and refused-access cases. Another buyer’s order URL returns “Not found”. Details and screenshots are in [docs/order-tracking.md](order-tracking.md).
 
 Known issues: the seven status email messages are written in [docs/content-guide.md](content-guide.md), but sending is not wired up; there is no refunded email yet; the refunded status message is short.
+
+### Feature 6 — Vendor orders and payouts
+
+Vendors should see their own paid orders, accept or reject each order, and view weekly payout summaries (gross, commission and net) in Naira. The owner reports the code is pushed to [feature/vendor-order-payouts](https://github.com/victorzahar/Ojalink/tree/feature/vendor-order-payouts), but it has not been built or run yet and no screenshot is available. Planned tests cover vendor-only ownership, refusal of logged-out/buyer/rider users, accepting only paid orders, and payout arithmetic in kobo. Results are pending.
+
+### Feature 8 — Admin and disputes
+
+The owner describes an admin area for vendor approvals, dispute review and updates, user browsing and platform stats. Access should be admin-only; checks as admin, buyer and signed-out visitor have not yet been run in this session. The owner reports the refund migration has not been applied to their database. Verify the target database and migration state before testing refunds.
 
 ### Feature 10 — Authentication and security
 
