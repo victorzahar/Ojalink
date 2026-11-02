@@ -82,7 +82,7 @@ export default async function AdminStatsPage() {
   return (
     <AdminPageShell
       title="Stats"
-      description="Review order, sales, vendor and dispute activity across OjaLink."
+      description="Review order, paid sales, vendor and dispute activity across OjaLink."
     >
       <AdminStatsOverview
         totalOrders={totalOrders}
