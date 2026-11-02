@@ -34,13 +34,28 @@ describe("marketplace query scopes", () => {
     expect(query.params).toEqual(["approved", true]);
   });
 
-  it("parameterises product name search query with ilike", () => {
+  it("parameterises product name OR vendor shop name search with ilike", () => {
     const query = dialect.sqlToQuery(productSearchScope({ q: "yam" }));
 
     expect(query.sql).toContain('"vendors"."approval_status" = $1');
     expect(query.sql).toContain('"products"."is_available" = $2');
     expect(query.sql).toContain('"products"."name" ilike $3');
-    expect(query.params).toEqual(["approved", true, "%yam%"]);
+    expect(query.sql).toContain('"vendors"."shop_name" ilike $4');
+    expect(query.params).toEqual(["approved", true, "%yam%", "%yam%"]);
+  });
+
+  it("escapes LIKE wildcard characters in the search query", () => {
+    const query = dialect.sqlToQuery(productSearchScope({ q: "50%" }));
+
+    expect(query.sql).not.toContain("%50%%");
+    expect(query.params).toEqual(["approved", true, "%50\\%%", "%50\\%%"]);
+  });
+
+  it("filters the search to one vendor by slug", () => {
+    const query = dialect.sqlToQuery(productSearchScope({ vendorSlug: "mama-nkechi" }));
+
+    expect(query.sql).toContain('"vendors"."slug" = $3');
+    expect(query.params).toEqual(["approved", true, "mama-nkechi"]);
   });
 
   it("parameterises category filtering and name query simultaneously", () => {
@@ -51,7 +66,13 @@ describe("marketplace query scopes", () => {
     expect(query.sql).toContain('"vendors"."approval_status" = $1');
     expect(query.sql).toContain('"products"."is_available" = $2');
     expect(query.sql).toContain('"products"."name" ilike $3');
-    expect(query.sql).toContain('"categories"."slug" = $4');
-    expect(query.params).toEqual(["approved", true, "%rice%", "provisions"]);
+    expect(query.sql).toContain('"categories"."slug" = $5');
+    expect(query.params).toEqual([
+      "approved",
+      true,
+      "%rice%",
+      "%rice%",
+      "provisions",
+    ]);
   });
 });
