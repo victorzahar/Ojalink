@@ -13,6 +13,7 @@ type MarketplacePageProps = {
   searchParams: Promise<{
     q?: string | string[];
     category?: string | string[];
+    vendor?: string | string[];
   }>;
 };
 
@@ -25,14 +26,18 @@ export default async function MarketplacePage({
     typeof resolvedParams.category === "string"
       ? resolvedParams.category.trim()
       : undefined;
+  const vendorSlug =
+    typeof resolvedParams.vendor === "string"
+      ? resolvedParams.vendor.trim()
+      : undefined;
 
   const [categoriesList, productsList] = await Promise.all([
     getCategories(),
-    searchProducts({ q, categorySlug }),
+    searchProducts({ q, categorySlug, vendorSlug }),
   ]);
 
   const activeCategory = categoriesList.find((c) => c.slug === categorySlug);
-  const hasFilter = Boolean(q || categorySlug);
+  const hasFilter = Boolean(q || categorySlug || vendorSlug);
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 sm:py-10">
@@ -64,6 +69,9 @@ export default async function MarketplacePage({
         {categorySlug && (
           <input type="hidden" name="category" value={categorySlug} />
         )}
+        {vendorSlug && (
+          <input type="hidden" name="vendor" value={vendorSlug} />
+        )}
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-5 text-muted-foreground pointer-events-none" />
           <Input
@@ -90,7 +98,14 @@ export default async function MarketplacePage({
         </span>
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
           <Link
-            href={q ? `/marketplace?q=${encodeURIComponent(q)}` : "/marketplace"}
+            href={
+              q || vendorSlug
+                ? `/marketplace?${[
+                    q ? `q=${encodeURIComponent(q)}` : "",
+                    vendorSlug ? `vendor=${encodeURIComponent(vendorSlug)}` : "",
+                  ].filter(Boolean).join("&")}`
+                : "/marketplace"
+            }
             className={`inline-flex h-11 items-center px-4 rounded-full text-sm font-semibold whitespace-nowrap transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 shrink-0 ${
               !categorySlug
                 ? "bg-primary text-primary-foreground"
@@ -104,7 +119,7 @@ export default async function MarketplacePage({
             const isSelected = category.slug === categorySlug;
             const categoryUrl = `/marketplace?category=${encodeURIComponent(category.slug)}${
               q ? `&q=${encodeURIComponent(q)}` : ""
-            }`;
+            }${vendorSlug ? `&vendor=${encodeURIComponent(vendorSlug)}` : ""}`;
 
             return (
               <Link
@@ -136,6 +151,11 @@ export default async function MarketplacePage({
             {activeCategory && (
               <span className="font-semibold text-foreground bg-card border border-border px-2 py-0.5 rounded-md">
                 Category: {activeCategory.name}
+              </span>
+            )}
+            {vendorSlug && (
+              <span className="font-semibold text-foreground bg-card border border-border px-2 py-0.5 rounded-md">
+                Shop: {productsList[0]?.vendorShopName ?? vendorSlug}
               </span>
             )}
           </div>
