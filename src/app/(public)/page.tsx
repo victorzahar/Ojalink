@@ -137,7 +137,7 @@ export default async function HomePage() {
                     className="h-12 w-full font-semibold border-primary/40 text-primary hover:bg-primary hover:text-white rounded-lg"
                   >
                     <Link
-                      href={`/marketplace?q=${encodeURIComponent(vendor.shopName)}`}
+                      href={`/marketplace?vendor=${encodeURIComponent(vendor.slug)}`}
                     >
                       View shop products
                     </Link>

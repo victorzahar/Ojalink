@@ -84,6 +84,7 @@ export async function getFeaturedVendors(limit = 6): Promise<FeaturedVendor[]> {
 export async function searchProducts(options: {
   q?: string;
   categorySlug?: string;
+  vendorSlug?: string;
 }): Promise<MarketplaceProduct[]> {
   const db = getDb();
   return db
