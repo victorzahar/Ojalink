@@ -4,14 +4,14 @@ This roster combines the team assignment screenshot with the ownership details r
 
 | Teammate | Feature | Non-code role | Commit / PR link |
 |---|---|---|---|
-| Michael Iyoha | 5 — Vendor product manager (merged) | 9 — Docs & README | [PR #3](https://github.com/victorzahar/Ojalink/pull/3) — merged |
-| Feature 1 owner — to confirm | 1 — Marketplace and search (merged) | Project lead | [PR #12](https://github.com/victorzahar/Ojalink/pull/12) — merged; awaiting owner confirmation |
+| Michael Iyoha | 5 — Vendor product manager (merged on main) | 9 — Docs & README | [PR #3](https://github.com/victorzahar/Ojalink/pull/3) — merged |
+| Feature 1 owner — to confirm | 1 — Marketplace and search (merged on main) | Project lead | [PR #12](https://github.com/victorzahar/Ojalink/pull/12) — merged |
 | Edegbe Esohe Favour | 2 — Vendor storefronts | Client & research lead | [feature/vendor-storefront](https://github.com/victorzahar/Ojalink/tree/feature/vendor-storefront) — screenshot and Neon data check pending |
 | To confirm | 3 — Cart and checkout | UX & wireframes | Add link |
 | Humphrey Uwagboe Igbinore | 4 — Buyer order tracking (merged) | Content writer | [PR #4](https://github.com/victorzahar/Ojalink/pull/4) — merged; evidence: [docs/order-tracking.md](order-tracking.md) |
-| Egbon Aisosa | 6 — Vendor orders and payouts (merged) | QA test lead | [PR #9](https://github.com/victorzahar/Ojalink/pull/9) — merged |
-| Iyen Monica | 7 — Rider app (merged) | Accessibility & mobile reviewer | [PR #11](https://github.com/victorzahar/Ojalink/pull/11) — merged |
-| Ajari Obed | 8 — Admin and disputes (merged) | Security & access tester | [PR #8](https://github.com/victorzahar/Ojalink/pull/8) — merged; label fix in PR #13 |
+| Egbon Aisosa | 6 — Vendor orders and payouts (merged on main) | QA test lead | [PR #9](https://github.com/victorzahar/Ojalink/pull/9) — merged |
+| Iyen Monica | 7 — Rider app (merged on main) | Accessibility & mobile reviewer | [PR #11](https://github.com/victorzahar/Ojalink/pull/11) — merged |
+| Ajari Obed | 8 — Admin and disputes (merged on main) | Security & access tester | [PR #8](https://github.com/victorzahar/Ojalink/pull/8) — merged; label fix in PR #13 |
 | To confirm | 9 — Notifications and automations | Docs & README | Add link |
 | Zahar | 10 — Accounts, roles and security | Pitch & demo lead | [PR #2](https://github.com/victorzahar/Ojalink/pull/2); screenshots in [docs/screenshots](screenshots/) |
 
@@ -34,6 +34,8 @@ After database setup, check an approved vendor with products, a missing or unapp
 Buyers can see their own orders on My orders and open any order to follow its progress on a four-step tracker: payment, accepted, picked up, delivered. Cancelled, rejected and refunded orders show clear messages.
 
 The owner reports 2/2 automated tests, lint and build passing, plus manual checks of order statuses and refused-access cases. Another buyer’s order URL returns “Not found”. Details and screenshots are in [docs/order-tracking.md](order-tracking.md).
+
+Owner-reported ownership test run on 1 November: a second buyer opening the first buyer’s order link saw “Not found”; signed-out `/orders` redirected to the login page. The throwaway user was deleted afterwards.
 
 Known issues: the seven status email messages are written in [docs/content-guide.md](content-guide.md), but sending is not wired up; there is no refunded email yet; the refunded status message is short.
 
