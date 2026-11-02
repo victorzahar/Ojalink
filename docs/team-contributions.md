@@ -1,10 +1,10 @@
 # Team contributions and hand-in checklist
 
-This roster combines the team assignment screenshot with the ownership details received so far. Replace “To confirm” only after each teammate confirms their name and task. Snow separately confirmed a personal assignment of Feature 5 plus Role 9 (Docs & README).
+This roster combines the team assignment screenshot with the ownership details received so far. Replace “To confirm” only after each teammate confirms their name and task. Michael Iyoha confirmed Feature 5 plus Role 9 (Docs & README).
 
 | Teammate | Feature | Non-code role | Commit / PR link |
 |---|---|---|---|
-| Snow (@snow-sud0) | 5 — Vendor product manager | 9 — Docs & README | [PR #3](https://github.com/victorzahar/Ojalink/pull/3) — pending review and merge |
+| Michael Iyoha (T4Y-0769) | 5 — Vendor product manager | 9 — Docs & README | [PR #3](https://github.com/victorzahar/Ojalink/pull/3) — pending review and merge |
 | Feature 1 owner — to confirm | 1 — Marketplace and search (not started on main) | Project lead | Awaiting owner confirmation and screenshot |
 | Edegbe Esohe Favour (T4Y-1220) | 2 — Vendor storefronts | Client & research lead | [feature/vendor-storefront](https://github.com/victorzahar/Ojalink/tree/feature/vendor-storefront) — screenshot and Neon data check pending |
 | To confirm | 3 — Cart and checkout | UX & wireframes | Add link |
@@ -16,6 +16,10 @@ This roster combines the team assignment screenshot with the ownership details r
 | Zahar | 10 — Accounts, roles and security | Pitch & demo lead | [PR #2](https://github.com/victorzahar/Ojalink/pull/2); screenshots in [docs/screenshots](screenshots/) |
 
 ## Feature notes received
+
+### Feature 5 — Vendor product manager (Michael Iyoha, T4Y-0769)
+
+Vendors can list, add and edit their own products, set Naira prices and stock, and mark products available or sold out. Server-side checks scope product access to the signed-in vendor; creating products requires vendor approval. Photo upload is waiting for the team to choose a storage provider. Work is on [PR #3](https://github.com/victorzahar/Ojalink/pull/3), pending review and merge.
 
 ### Feature 2 — Vendor storefronts
 
