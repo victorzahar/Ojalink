@@ -1,4 +1,3 @@
-// src/app/vendor/orders/page.tsx
 import { and, desc, eq, inArray } from "drizzle-orm";
 
 import { OrderActions } from "@/components/vendor-orders/order-actions";
@@ -6,6 +5,10 @@ import { requireRole } from "@/lib/auth/guard";
 import { getDb } from "@/lib/db";
 import { orders, vendors } from "@/lib/db/schema";
 import { formatDateLagos, formatNaira } from "@/lib/orders/format";
+
+// This page reads the session on every request. Block on the server so
+// protected content is never served from the static shell or a cache.
+export const instant = false;
 
 // Live status names only. "pending" is deliberately absent: the buyer hasn't paid yet.
 const GROUPS = {
