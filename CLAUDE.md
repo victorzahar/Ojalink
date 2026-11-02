@@ -69,7 +69,7 @@ Each feature owner works mainly inside their own folders and avoids editing othe
 
 ## Database rules
 
-- Money is stored as integer kobo (₦1 = 100 kobo). Convert to Naira only when displaying, as `₦6,500`.
+- Money is stored as integer kobo (₦1 = 100 kobo). Convert to Naira only when displaying, as `₦6,500`. Full arithmetic and display rules: **[docs/money-rules.md](docs/money-rules.md)**.
 - Every table has `id` (UUID), `created_at`, `updated_at`.
 - Schema changes need team agreement and a migration file. Never edit the database by hand on the live project.
 - Order statuses: `pending_payment`, `paid`, `vendor_accepted`, `vendor_rejected`, `ready_for_pickup`, `rider_assigned`, `picked_up`, `delivered`, `cancelled`, `refunded`, `disputed`.
