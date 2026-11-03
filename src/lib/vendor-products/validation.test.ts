@@ -24,6 +24,29 @@ describe("vendor product rules", () => {
     expect(validateProductForm(form({ name: "Rice", categoryId: "c1", priceNaira: "10", stockQuantity: "1.5" })).success).toBe(false);
   });
 
+  it("accepts the maximum database integer price and rejects larger prices", () => {
+    const atMaximum = validateProductForm(form({ name: "Rice", categoryId: "c1", priceNaira: "21474836.47", stockQuantity: "1" }));
+    const aboveMaximum = validateProductForm(form({ name: "Rice", categoryId: "c1", priceNaira: "21474836.48", stockQuantity: "1" }));
+
+    expect(atMaximum).toMatchObject({ success: true, data: { priceKobo: 2_147_483_647 } });
+    expect(aboveMaximum.success).toBe(false);
+  });
+
+  it("accepts the maximum database integer stock and rejects larger quantities", () => {
+    const atMaximum = validateProductForm(form({ name: "Rice", categoryId: "c1", priceNaira: "10", stockQuantity: "2147483647" }));
+    const aboveMaximum = validateProductForm(form({ name: "Rice", categoryId: "c1", priceNaira: "10", stockQuantity: "2147483648" }));
+
+    expect(atMaximum).toMatchObject({ success: true, data: { stockQuantity: 2_147_483_647 } });
+    expect(aboveMaximum.success).toBe(false);
+  });
+
+  it("accepts descriptions up to 2,000 characters and rejects longer descriptions", () => {
+    const atMaximum = validateProductForm(form({ name: "Rice", description: "a".repeat(2_000), categoryId: "c1", priceNaira: "10", stockQuantity: "1" }));
+    const aboveMaximum = validateProductForm(form({ name: "Rice", description: "a".repeat(2_001), categoryId: "c1", priceNaira: "10", stockQuantity: "1" }));
+
+    expect(atMaximum.success).toBe(true);
+    expect(aboveMaximum.success).toBe(false);
+  });
   it("forces zero-stock products unavailable and does not auto-enable on restock", () => {
     const soldOut = validateProductForm(form({ name: "Rice", categoryId: "c1", priceNaira: "10", stockQuantity: "0", isAvailable: "on" }));
     expect(soldOut).toMatchObject({ success: true, data: { isAvailable: false } });

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireVendorUser } from "@/lib/vendor-products/access";
 import { getVendorIdForUser, listVendorProducts } from "@/lib/vendor-products/queries";
+import { formatNaira } from "@/lib/orders/format";
 
 export const instant = false;
 export const metadata = { title: "My products · OjaLink" };
@@ -25,7 +26,7 @@ export default async function VendorProductsPage() {
       <ul className="grid gap-4 sm:grid-cols-2">{items.map((item) => <li key={item.id}><Card className="h-full"><CardContent className="flex h-full flex-col gap-3">
         {item.imageUrl ? <Image unoptimized src={item.imageUrl} alt={item.name} width={800} height={450} className="aspect-[16/9] w-full rounded-md object-cover" /> : <div aria-hidden="true" className="flex aspect-[16/9] items-center justify-center rounded-md bg-muted text-sm text-muted-foreground">Photo coming soon</div>}
         <div className="flex items-start justify-between gap-3"><div><h2 className="font-heading text-lg font-semibold">{item.name}</h2><p className="text-sm text-muted-foreground">{item.categoryName}</p></div><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.isAvailable ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{item.isAvailable ? "Available" : "Sold out"}</span></div>
-        <p className="text-lg font-semibold">₦{(item.priceKobo / 100).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+        <p className="text-lg font-semibold">{formatNaira(item.priceKobo)}</p>
         <p className="text-sm text-muted-foreground">{item.stockQuantity} in stock</p>
         <Button asChild variant="outline" className="mt-auto"><Link href={`/vendor/products/${item.id}/edit`}>Edit product</Link></Button>
       </CardContent></Card></li>)}</ul>}
