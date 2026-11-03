@@ -11,6 +11,8 @@ export const metadata = { title: "Edit product · OjaLink" };
 export default async function EditVendorProductPage({ params }: { params: Promise<{ productId: string }> }) {
   const user = await requireVendorUser();
   const { productId } = await params;
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidPattern.test(productId)) notFound();
   const vendorId = await getVendorIdForUser(user.id);
   if (!vendorId) notFound();
   const [product, categories] = await Promise.all([getVendorProduct(vendorId, productId), listProductCategories()]);

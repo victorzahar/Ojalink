@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { ProductFormState } from "@/app/vendor/products/actions";
 import { createProduct, updateProduct } from "@/app/vendor/products/actions";
-import { formatKoboAsNaira } from "@/lib/vendor-products/validation";
+import { MAX_PRODUCT_DESCRIPTION_LENGTH, MAX_PRODUCT_PRICE_KOBO, MAX_PRODUCT_STOCK, formatKoboAsNaira } from "@/lib/vendor-products/validation";
 
 type Category = { id: string; name: string };
 type ExistingProduct = {
@@ -41,14 +41,14 @@ export function ProductForm({ categories, product }: { categories: Category[]; p
           </select>
         </label>
         <label className="grid gap-2 text-sm font-medium">Description
-          <textarea name="description" rows={4} defaultValue={product?.description ?? ""} className="w-full rounded-md border border-input bg-background px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" placeholder="Tell buyers about this product" />
+          <textarea name="description" maxLength={MAX_PRODUCT_DESCRIPTION_LENGTH} rows={4} defaultValue={product?.description ?? ""} className="w-full rounded-md border border-input bg-background px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" placeholder="Tell buyers about this product" />
         </label>
         <label className="grid gap-2 text-sm font-medium">Price (₦)
-          <Input name="priceNaira" type="number" min="0" step="0.01" inputMode="decimal" required defaultValue={product ? formatKoboAsNaira(product.priceKobo) : ""} placeholder="6500.00" />
+          <Input name="priceNaira" type="number" min="0" max={(MAX_PRODUCT_PRICE_KOBO / 100).toFixed(2)} step="0.01" inputMode="decimal" required defaultValue={product ? formatKoboAsNaira(product.priceKobo) : ""} placeholder="6500.00" />
           <span className="text-xs font-normal text-muted-foreground">Saved securely as kobo.</span>
         </label>
         <label className="grid gap-2 text-sm font-medium">Available stock
-          <Input name="stockQuantity" type="number" min="0" step="1" inputMode="numeric" required defaultValue={product?.stockQuantity ?? 0} />
+          <Input name="stockQuantity" type="number" min="0" max={MAX_PRODUCT_STOCK} step="1" inputMode="numeric" required defaultValue={product?.stockQuantity ?? 0} />
         </label>
         <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
           <input type="checkbox" name="isAvailable" defaultChecked={product ? product.isAvailable : true} className="size-5 accent-primary" />
