@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { requireRole } from "@/lib/auth/guard";
 
@@ -36,6 +38,9 @@ export default async function BuyerPage() {
           <p className="text-sm text-muted-foreground">
             Browsing, cart and orders will live here.
           </p>
+          <Button asChild className="w-full">
+            <Link href="/marketplace">Go to marketplace</Link>
+          </Button>
           <LogoutButton className="w-full sm:w-auto" />
         </CardContent>
       </Card>

@@ -1,9 +1,10 @@
 import "server-only";
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, sum } from "drizzle-orm";
 
 import { getDb } from "@/lib/db";
-import { categories, markets, products, vendors } from "@/lib/db/schema";
+import { categories, markets, products, stockReservations, vendors } from "@/lib/db/schema";
+import { getAvailableStock } from "@/lib/checkout/stock";
 import {
   featuredVendorsScope,
   productSearchScope,
@@ -87,7 +88,7 @@ export async function searchProducts(options: {
   vendorSlug?: string;
 }): Promise<MarketplaceProduct[]> {
   const db = getDb();
-  return db
+  const rows = await db
     .select({
       id: products.id,
       name: products.name,
@@ -106,4 +107,32 @@ export async function searchProducts(options: {
     .innerJoin(categories, eq(products.categoryId, categories.id))
     .where(productSearchScope(options))
     .orderBy(desc(products.createdAt));
+
+  if (rows.length === 0) return rows;
+
+  const reservedRows = await db
+    .select({
+      productId: stockReservations.productId,
+      quantity: sum(stockReservations.quantity),
+    })
+    .from(stockReservations)
+    .where(and(
+      inArray(stockReservations.productId, rows.map((row) => row.id)),
+      eq(stockReservations.status, "reserved"),
+      gt(stockReservations.expiresAt, new Date()),
+    ))
+    .groupBy(stockReservations.productId);
+  const reservedByProduct = new Map(
+    reservedRows.flatMap((row) => row.productId
+      ? [[row.productId, Number(row.quantity ?? 0)] as const]
+      : []),
+  );
+
+  return rows.map((row) => ({
+    ...row,
+    stockQuantity: getAvailableStock(
+      row.stockQuantity,
+      reservedByProduct.get(row.id) ?? 0,
+    ),
+  }));
 }
