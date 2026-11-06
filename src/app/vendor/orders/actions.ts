@@ -1,11 +1,11 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { requireRole } from "@/lib/auth/guard";
-import { getDb } from "@/lib/db";
-import { orders, vendors } from "@/lib/db/schema";
+import { getDb, getTransactionalDb } from "@/lib/db";
+import { orders, payments, products, stockReservations, vendors } from "@/lib/db/schema";
 import { vendorOrderScope } from "@/lib/orders/vendor-scope";
 
 const CANT_CHANGE = "This order can't be changed.";
@@ -38,13 +38,62 @@ async function changeOrderStatus(
 
   // One conditional update: only a paid order owned by this vendor can change.
   // A double click or a stale page simply changes zero rows.
-  const updated = await getDb()
-    .update(orders)
-    .set({ status: nextStatus, updatedAt: new Date() })
-    .where(and(vendorOrderScope(vendor.id, orderId), eq(orders.status, "paid")))
-    .returning({ id: orders.id });
+  try {
+    const changed = await getTransactionalDb().transaction(async (tx) => {
+      const [order] = await tx
+        .select({ id: orders.id })
+        .from(orders)
+        .where(and(vendorOrderScope(vendor.id, orderId), eq(orders.status, "paid")))
+        .for("update")
+        .limit(1);
+      if (!order) return false;
 
-  if (updated.length === 0) return { ok: false, message: CANT_CHANGE };
+      if (nextStatus === "rejected") {
+        const reservations = await tx
+          .select({ productId: stockReservations.productId, quantity: stockReservations.quantity })
+          .from(stockReservations)
+          .where(and(
+            eq(stockReservations.orderId, orderId),
+            eq(stockReservations.status, "consumed"),
+          ));
+        const productIds = [...new Set(reservations.flatMap((item) => item.productId ? [item.productId] : []))].sort();
+        if (productIds.length > 0) {
+          await tx
+            .select({ id: products.id })
+            .from(products)
+            .where(inArray(products.id, productIds))
+            .orderBy(products.id)
+            .for("update");
+          for (const item of reservations) {
+            if (!item.productId) continue;
+            await tx.update(products)
+              .set({ stockQuantity: sql`${products.stockQuantity} + ${item.quantity}` })
+              .where(eq(products.id, item.productId));
+          }
+        }
+
+        await tx.update(stockReservations)
+          .set({ status: "released", updatedAt: new Date() })
+          .where(and(
+            eq(stockReservations.orderId, orderId),
+            eq(stockReservations.status, "consumed"),
+          ));
+      }
+
+      await tx.update(orders)
+        .set({ status: nextStatus, updatedAt: new Date() })
+        .where(and(vendorOrderScope(vendor.id, orderId), eq(orders.status, "paid")));
+      if (nextStatus === "rejected") {
+        await tx.update(payments)
+          .set({ refundReviewRequired: true, updatedAt: new Date() })
+          .where(and(eq(payments.orderId, orderId), eq(payments.status, "success")));
+      }
+      return true;
+    });
+    if (!changed) return { ok: false, message: CANT_CHANGE };
+  } catch {
+    return { ok: false, message: "We couldn't update this order. Please try again." };
+  }
 
   revalidatePath("/vendor/orders");
 

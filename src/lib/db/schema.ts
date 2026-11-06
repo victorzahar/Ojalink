@@ -58,6 +58,12 @@ export const paymentStatusEnum = pgEnum("payment_status", [
   "refunded",
 ]);
 
+export const stockReservationStatusEnum = pgEnum("stock_reservation_status", [
+  "reserved",
+  "consumed",
+  "released",
+]);
+
 export const payoutStatusEnum = pgEnum("payout_status", [
   "unpaid",
   "paid",
@@ -145,6 +151,46 @@ export const products = pgTable(
     index("products_category_id_idx").on(table.categoryId),
     check("products_price_kobo_nonnegative", sql`${table.priceKobo} >= 0`),
     check("products_stock_quantity_nonnegative", sql`${table.stockQuantity} >= 0`),
+  ],
+);
+
+export const carts = pgTable(
+  "carts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    buyerId: uuid("buyer_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    vendorId: uuid("vendor_id").references(() => vendors.id, {
+      onDelete: "set null",
+    }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [uniqueIndex("carts_buyer_id_unique").on(table.buyerId)],
+);
+
+export const cartItems = pgTable(
+  "cart_items",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    cartId: uuid("cart_id")
+      .notNull()
+      .references(() => carts.id, { onDelete: "cascade" }),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    quantity: integer("quantity").notNull(),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    uniqueIndex("cart_items_cart_product_unique").on(
+      table.cartId,
+      table.productId,
+    ),
+    index("cart_items_product_id_idx").on(table.productId),
+    check("cart_items_quantity_positive", sql`${table.quantity} > 0`),
   ],
 );
 
@@ -237,6 +283,7 @@ export const payments = pgTable(
     paystackReference: text("paystack_reference").notNull(),
     amountKobo: integer("amount_kobo").notNull(),
     status: paymentStatusEnum("status").notNull().default("pending"),
+    refundReviewRequired: boolean("refund_review_required").notNull().default(false),
     paidAt: timestamp("paid_at", { withTimezone: true }),
     createdAt,
     updatedAt,
@@ -244,6 +291,40 @@ export const payments = pgTable(
   (table) => [
     uniqueIndex("payments_paystack_reference_unique").on(table.paystackReference),
     index("payments_order_id_idx").on(table.orderId),
+  ],
+);
+
+export const stockReservations = pgTable(
+  "stock_reservations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    productId: uuid("product_id").references(() => products.id, {
+      onDelete: "set null",
+    }),
+    quantity: integer("quantity").notNull(),
+    status: stockReservationStatusEnum("status").notNull().default("reserved"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    uniqueIndex("stock_reservations_order_product_unique").on(
+      table.orderId,
+      table.productId,
+    ),
+    index("stock_reservations_product_status_expiry_idx").on(
+      table.productId,
+      table.status,
+      table.expiresAt,
+    ),
+    index("stock_reservations_status_expiry_idx").on(
+      table.status,
+      table.expiresAt,
+    ),
+    check("stock_reservations_quantity_positive", sql`${table.quantity} > 0`),
   ],
 );
 
