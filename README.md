@@ -12,7 +12,7 @@ The current `main` branch includes email-and-password accounts with role-protect
 - **Feature 5 — Vendor product manager (Michael Iyoha):** merged (PR #3). Vendors manage their own products; creating products requires an approved vendor (pending/rejected vendors are refused server-side). Product photo upload is pending the team’s choice of storage provider. Michael also has team Role 9, Docs & README; see [team contributions](docs/team-contributions.md).
 - **Feature 6 — Vendor orders and payouts:** merged (PR #9). Vendors see their orders grouped by status (Needs action / In progress / Done / History) and can accept or reject paid orders with one race-safe conditional update, scoped to their own vendor profile. The `payouts` table enforces one payout per vendor and week (Monday, Lagos time); the payout calculation workflow itself is still future work (see [money rules](docs/money-rules.md)).
 - **Feature 7 — Rider app (Iyen Monica):** merged (PR #11). Phone-first rider area: available jobs (no buyer contact details until accepted), accept, picked up, delivered and delivery history, all in one transaction per status flip. Iyen’s accessibility/mobile reviewer role covers touch target and text sizes, contrast, labels, alt text, slow 3G, 360px screens and Lighthouse checks.
-- **Feature 8 — Admin and disputes:** merged (PR #8, label fix PR #13). Admins approve or reject vendors, manage disputes (a resolution note is required to resolve; refunds stay with the separate refund workflow), read-only users list and stats where sales are shown as **Paid sales**. Access checks (admin guard on every admin page and action) were verified by review.
+- **Feature 8 — Admin and disputes:** merged (PR #8, label fix PR #13). Admins approve or reject vendors, manage disputes (a resolution note is required to resolve; refunds stay with the separate refund workflow), read-only users list and stats where sales are shown as **Paid sales**. The admin guard on every admin page and action was checked by code review, and the committed access screenshots (from the accounts work below) show the deny/allow screens; full role-switch re-runs against the running app are still on the manual-check list.
 - **Feature 10 — Authentication and security:** visitors can sign up, log in and out. Protected pages and API routes check roles on the server. See [docs/auth.md](docs/auth.md).
 
 Payment checkout and the Paystack webhook are not yet implemented in this repository. A live deployment URL has not been supplied.
@@ -96,7 +96,11 @@ A vendor role check is not an ownership check: data queries must also scope reco
 - Refund money movement still belongs to the future refund workflow; admin disputes cannot set refund status, and the admin refund panel is a disabled placeholder.
 - Rider online/offline toggle, proof photos and rider earnings are not built (no schema or team decision yet).
 - Feature 10’s production rate limiting is stored in memory, which is weak for Vercel. Sign-up currently reveals whether an email is registered. Google login and an admin role-management screen are not built.
-- The owner reports the buyer-to-buyer order refusal test passed manually. Vendor-to-vendor data refusal still needs a manual check with two vendor accounts.
+- The owner reports the buyer-to-buyer order refusal test passed manually (we have not re-run it ourselves; it would need a second buyer account, `buyer2@ojalink.test`, which the seed does not create yet). Vendor-to-vendor data refusal still needs a manual check with two vendor accounts.
+- docs/money-rules.md still needs its payouts-section correction — the rules PR merged before the corrected payout wording was agreed.
+- The payouts-and-refunds migration work is still pending on the project checklist; do not test refund flows before the migration state is confirmed.
+- The seed scripts do not yet create the second accounts (`buyer2@ojalink.test`, `rider2@ojalink.test`) used for cross-account access checks.
+- The PR #4 follow-ups are still open: a buyer-scope automated test, a production guard in `seed-orders.ts`, and removing the “TEMPORARY” note.
 - Feature 5 photo upload awaits the team’s storage-provider decision.
 - The live URL and the remaining team member names and commit links still need to be added.
 
