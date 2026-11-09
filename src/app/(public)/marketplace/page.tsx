@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Search, Store, X, ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatNaira } from "@/lib/orders/format";
 import { getCategories, searchProducts } from "@/lib/marketplace/queries";
+import { demoProductImage } from "@/lib/products/demo-product-images";
 
 export const instant = false;
 
@@ -199,12 +201,39 @@ export default async function MarketplacePage({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {productsList.map((product) => (
+            {productsList.map((product) => {
+              const vendorImage = product.imageUrl?.startsWith("/") && !product.imageUrl.startsWith("//")
+                ? product.imageUrl
+                : null;
+              const sampleImage = demoProductImage(product.slug);
+              const imageSrc = vendorImage ?? sampleImage ?? "/images/product-placeholder.svg";
+              const isSampleImage = !vendorImage && sampleImage !== null;
+
+              return (
               <Card
                 key={product.id}
-                className="rounded-xl border border-border/80 bg-card shadow-xs hover:border-primary/50 transition-all flex flex-col justify-between p-4 sm:p-5"
+                className="gap-0 rounded-xl border border-border/80 bg-card p-0 shadow-xs transition-all hover:border-primary/50"
               >
-                <CardContent className="p-0 space-y-3">
+                <div className="relative aspect-square w-full bg-muted">
+                  <Image
+                    src={imageSrc}
+                    alt={isSampleImage ? `Sample photo for ${product.name}` : vendorImage ? `Photo of ${product.name}` : `No product photo available for ${product.name}`}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 360px"
+                    className="object-cover"
+                  />
+                  {isSampleImage && (
+                    <span className="absolute left-3 top-3 rounded-full bg-card/95 px-2.5 py-1 text-xs font-semibold text-foreground shadow-sm">
+                      Sample photo
+                    </span>
+                  )}
+                  {!vendorImage && !sampleImage && (
+                    <span className="absolute bottom-3 left-3 rounded-full bg-card/95 px-2.5 py-1 text-xs font-medium text-muted-foreground shadow-sm">
+                      Photo coming soon
+                    </span>
+                  )}
+                </div>
+                <CardContent className="flex flex-1 flex-col gap-3 p-4 sm:p-5">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-semibold text-muted-foreground bg-muted/40 px-2.5 py-0.5 rounded-md">
                       {product.categoryName}
@@ -243,10 +272,7 @@ export default async function MarketplacePage({
                       {formatNaira(product.priceKobo)}
                     </span>
                   </div>
-                </CardContent>
-
-                {/* View Product action button (copy from docs/content-guide.md) */}
-                <div className="pt-4 mt-auto">
+                  {/* View Product action button (copy from docs/content-guide.md) */}
                   <Button
                     asChild
                     className="h-12 w-full font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg"
@@ -257,9 +283,10 @@ export default async function MarketplacePage({
                       View product
                     </Link>
                   </Button>
-                </div>
+                </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
