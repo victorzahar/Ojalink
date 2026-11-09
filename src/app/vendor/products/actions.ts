@@ -1,12 +1,12 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, gt, sum } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireVendorUser } from "@/lib/vendor-products/access";
-import { getDb } from "@/lib/db";
-import { categories, products } from "@/lib/db/schema";
+import { getDb, getTransactionalDb } from "@/lib/db";
+import { categories, products, stockReservations } from "@/lib/db/schema";
 import { getVendorApprovalStatus, getVendorIdForUser } from "@/lib/vendor-products/queries";
 import { canCreateVendorProducts, validateProductForm } from "@/lib/vendor-products/validation";
 
@@ -29,15 +29,39 @@ async function saveProduct(formData: FormData, productId?: string): Promise<Prod
     if (!category) return { error: "That category is no longer available. Choose another one." };
 
     if (productId) {
-      const updated = await db.update(products).set({
-        name: result.data.name,
-        description: result.data.description || null,
-        categoryId: result.data.categoryId,
-        priceKobo: result.data.priceKobo,
-        stockQuantity: result.data.stockQuantity,
-        isAvailable: result.data.isAvailable,
-      }).where(and(eq(products.id, productId), eq(products.vendorId, vendorId))).returning({ id: products.id });
-      if (updated.length === 0) return { error: "We could not find that product in your shop." };
+      const updateError = await getTransactionalDb().transaction(async (tx) => {
+        const [product] = await tx
+          .select({ id: products.id })
+          .from(products)
+          .where(and(eq(products.id, productId), eq(products.vendorId, vendorId)))
+          .for("update")
+          .limit(1);
+        if (!product) return "We could not find that product in your shop.";
+
+        const [reserved] = await tx
+          .select({ quantity: sum(stockReservations.quantity) })
+          .from(stockReservations)
+          .where(and(
+            eq(stockReservations.productId, productId),
+            eq(stockReservations.status, "reserved"),
+            gt(stockReservations.expiresAt, new Date()),
+          ));
+        const reservedQuantity = Number(reserved?.quantity ?? 0);
+        if (result.data.stockQuantity < reservedQuantity || (reservedQuantity > 0 && !result.data.isAvailable)) {
+          return `This product has ${reservedQuantity} unit${reservedQuantity === 1 ? "" : "s"} reserved in active checkouts. Keep enough stock and leave it available until those holds expire.`;
+        }
+
+        await tx.update(products).set({
+          name: result.data.name,
+          description: result.data.description || null,
+          categoryId: result.data.categoryId,
+          priceKobo: result.data.priceKobo,
+          stockQuantity: result.data.stockQuantity,
+          isAvailable: result.data.isAvailable,
+        }).where(and(eq(products.id, productId), eq(products.vendorId, vendorId)));
+        return null;
+      });
+      if (updateError) return { error: updateError };
     } else {
       const slugBase = result.data.name.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 70) || "product";
       await db.insert(products).values({

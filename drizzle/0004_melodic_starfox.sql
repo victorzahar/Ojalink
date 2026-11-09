@@ -1,0 +1,1 @@
+ALTER TABLE "payments" ADD COLUMN "refund_review_required" boolean DEFAULT false NOT NULL;
