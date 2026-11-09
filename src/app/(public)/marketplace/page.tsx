@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Store, X, ArrowLeft } from "lucide-react";
+import { Search, Store, X, ArrowLeft, ShoppingCart } from "lucide-react";
+
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatNaira } from "@/lib/orders/format";
 import { getCategories, searchProducts } from "@/lib/marketplace/queries";
 import { demoProductImage } from "@/lib/products/demo-product-images";
+import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 
 export const instant = false;
 
@@ -54,9 +56,17 @@ export default async function MarketplacePage({
             Back to Home
           </Link>
         </div>
-        <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-          Marketplace
-        </h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            Marketplace
+          </h1>
+          <Button asChild variant="outline" className="h-11 w-auto shrink-0 px-3 sm:px-4">
+            <Link href="/cart">
+              <ShoppingCart className="size-4" />
+              View cart
+            </Link>
+          </Button>
+        </div>
         <p className="text-sm text-muted-foreground">
           Real products and real Naira prices from verified Benin City market vendors.
         </p>
@@ -284,6 +294,12 @@ export default async function MarketplacePage({
                     </Link>
                   </Button>
                 </CardContent>
+                
+
+                {/* Add-to-cart is available directly from the product card. */}
+                <div className="pt-4 mt-auto">
+                  <AddToCartButton productId={product.id} disabled={product.stockQuantity < 1} />
+                </div>
               </Card>
               );
             })}
