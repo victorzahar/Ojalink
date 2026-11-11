@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/guard";
 import { getDb } from "@/lib/db";
 import { deliveries, orders } from "@/lib/db/schema";
+import { requiredStatusBefore } from "@/lib/rider/status-flow";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -65,7 +66,7 @@ export async function acceptJob(deliveryId: unknown): Promise<RiderActionResult>
       .where(
         and(
           eq(deliveries.id, checked.deliveryId),
-          eq(deliveries.status, "available"),
+          eq(deliveries.status, requiredStatusBefore.accepted),
           isNull(deliveries.riderId),
           sql`exists (
             select 1 from ${orders}
@@ -113,7 +114,7 @@ export async function markPickedUp(deliveryId: unknown): Promise<RiderActionResu
           and(
             eq(deliveries.id, checked.deliveryId),
             eq(deliveries.riderId, checked.riderId),
-            eq(deliveries.status, "accepted"),
+            eq(deliveries.status, requiredStatusBefore.picked_up),
           ),
         )
         .returning({ id: deliveries.id }),
@@ -172,7 +173,7 @@ export async function markDelivered(deliveryId: unknown): Promise<RiderActionRes
           and(
             eq(deliveries.id, checked.deliveryId),
             eq(deliveries.riderId, checked.riderId),
-            eq(deliveries.status, "picked_up"),
+            eq(deliveries.status, requiredStatusBefore.delivered),
           ),
         )
         .returning({ id: deliveries.id }),
