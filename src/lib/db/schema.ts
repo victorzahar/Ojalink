@@ -14,7 +14,9 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { users } from "@/lib/auth/schema";
-export { userRoleEnum } from "@/lib/auth/role";
+import { userRoleEnum } from "@/lib/auth/role";
+
+export { userRoleEnum };
 
 export { accounts, sessions, users, verifications } from "@/lib/auth/schema";
 
@@ -354,6 +356,39 @@ export const payouts = pgTable(
     ),
   ],
 );
+
+export const roleRequestStatuses = ["pending", "approved", "rejected"] as const;
+
+export const roleRequestStatusEnum = pgEnum("role_request_status", roleRequestStatuses);
+
+/**
+ * Self-serve role requests (currently rider onboarding). One open request
+ * per user; approval grants the requested role through setUserRoleAsAdmin.
+ */
+export const roleRequests = pgTable(
+  "role_requests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    requestedRole: userRoleEnum("requested_role").notNull(),
+    status: roleRequestStatusEnum("status").notNull().default("pending"),
+    note: text("note"),
+    resolvedBy: uuid("resolved_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    uniqueIndex("role_requests_user_id_unique").on(table.userId),
+    index("role_requests_status_idx").on(table.status),
+    check(
+      "role_requests_resolved_by_when_resolved",
+      sql`${table.status} = 'pending' OR ${table.resolvedBy} IS NOT NULL`,
+    ),
+  ],
+);
+
 
 export const reviews = pgTable(
   "reviews",

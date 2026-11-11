@@ -5,6 +5,7 @@ import { LogoutButton } from "@/components/auth/logout-button";
 
 const adminSections = [
   { href: "/admin/vendors", label: "Vendor approvals" },
+  { href: "/admin/riders", label: "Rider requests" },
   { href: "/admin/payouts", label: "Payouts" },
   { href: "/admin/disputes", label: "Disputes" },
   { href: "/admin/users", label: "Users" },

@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { requireRole } from "@/lib/auth/guard";
+import { setUserRoleAsAdmin } from "@/lib/auth/roles";
 import { getDb } from "@/lib/db";
 import { vendors } from "@/lib/db/schema";
 
@@ -49,7 +50,7 @@ export async function updateVendorApprovalStatus(
           eq(vendors.approvalStatus, "pending"),
         ),
       )
-      .returning({ id: vendors.id });
+      .returning({ id: vendors.id, userId: vendors.userId });
 
     if (!updatedVendor) {
       return {
@@ -59,7 +60,18 @@ export async function updateVendorApprovalStatus(
       };
     }
 
+    // Approving a shop also grants its owner vendor access. Rejected
+    // applications leave the applicant as a buyer.
+    if (newStatus === "approved") {
+      await setUserRoleAsAdmin({
+        actorId: auth.id,
+        userId: updatedVendor.userId,
+        role: "vendor",
+      });
+    }
+
     revalidatePath("/admin/vendors");
+    revalidatePath("/vendor/apply");
     return {
       ok: true,
       message:
