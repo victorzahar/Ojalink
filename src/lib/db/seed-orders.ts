@@ -28,6 +28,9 @@ type OrderSample = {
   deliveryId: string;
   reference: string;
   status: "pending" | "paid" | "accepted" | "rejected" | "picked_up" | "delivered" | "cancelled";
+  // Set to "available" for an accepted order that is waiting for a rider.
+  // Leave it out to keep the original behaviour (delivery follows the order status).
+  deliveryStatus?: "available";
   vendorSlug: string;
   productSlug: string;
   quantity: number;
@@ -211,6 +214,25 @@ const orderSamples: OrderSample[] = [
     pickedUpAt: new Date("2026-10-25T19:40:00+01:00"),
     deliveredAt: new Date("2026-10-26T00:30:00+01:00"),
   },
+  {
+    // Rider app sample: the vendor accepted this paid order and its delivery is
+    // `available` with no rider, so a job shows on /rider without the Paystack
+    // webhook. A rider who accepts it moves the delivery to `accepted`.
+    id: "40000000-0000-4000-8000-000000000011",
+    itemId: "41000000-0000-4000-8000-000000000011",
+    paymentId: "42000000-0000-4000-8000-000000000011",
+    deliveryId: "43000000-0000-4000-8000-000000000011",
+    reference: "ojalink-demo-order-accepted-available-011",
+    status: "accepted",
+    deliveryStatus: "available",
+    vendorSlug: "uselu-home-stores",
+    productSlug: "big-bull-rice-5kg",
+    quantity: 1,
+    address: "11 Ugbowo-Lagos Road, near the University of Benin gate",
+    area: "Ugbowo, Benin City",
+    createdAt: new Date("2026-11-01T10:20:00+01:00"),
+    paidAt: new Date("2026-11-01T10:23:00+01:00"),
+  },
 ];
 
 try {
@@ -310,8 +332,11 @@ try {
           .values({
             id: sample.deliveryId,
             orderId: sample.id,
-            status: sample.status === "accepted" ? "accepted" : sample.status,
-            acceptedAt: sample.status === "accepted" ? sample.createdAt : undefined,
+            status:
+              sample.deliveryStatus ?? (sample.status === "accepted" ? "accepted" : sample.status),
+            // No rider has accepted an `available` delivery yet, so no acceptedAt.
+            acceptedAt:
+              sample.status === "accepted" && !sample.deliveryStatus ? sample.createdAt : undefined,
             pickedUpAt: sample.pickedUpAt,
             deliveredAt: sample.deliveredAt,
             createdAt: sample.createdAt,
@@ -322,7 +347,7 @@ try {
     }
   });
 
-  console.log("Order seed complete: 10 sample orders, one per status plus delivered orders (last week, the Lagos-time week edge, and a partial refund).");
+  console.log("Order seed complete: 11 sample orders, one per status plus delivered orders (last week, the Lagos-time week edge, and a partial refund) and one accepted order with an available delivery for the rider app.");
 } finally {
   await pool.end();
 }
