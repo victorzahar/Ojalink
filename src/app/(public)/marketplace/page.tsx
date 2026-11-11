@@ -49,7 +49,7 @@ export default async function MarketplacePage({
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
           <Link
-            href="/"
+            href="/home"
             className="text-xs font-semibold text-muted-foreground hover:text-primary flex items-center gap-1"
           >
             <ArrowLeft className="size-3.5" />

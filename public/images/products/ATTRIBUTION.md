@@ -26,5 +26,10 @@ Files were downloaded from Wikimedia Commons and resized/re-encoded to JPEG (up 
 | `indomie-regular-noodles-carton.jpg` | “Boxes of Indo Mie instant noodles”, Graham Hills | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Boxes_of_Indo_Mie_instant_noodles.jpg) |
 | `samsung-galaxy-a06-128gb.jpg` | “Samsung Galaxy A06 2025”, Captainmorlypogi1959 | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Samsung_Galaxy_A06_2025.jpg) |
 | `wired-earphones-microphone.jpg` | “Creative Flex Wired Headset”, Dinopkk | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Creative_Flex_Wired_Headset.jpg) |
+| `seafood-market.jpg` | “Seafood market”, Bernal Saborio | [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Seafood_market.jpg) |
+| `yam-tubers.jpg` | “Tubers of Yam 1”, Judethedeus | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Tubers_of_Yam_1.jpg) |
+| `household-cleaning-products.jpg` | “Cleaning Products01”, Doggo19292 | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Cleaning_Products01.jpg) |
+| `jewelry-necklace.jpg` | “Van Cleef & Arpels Amenta Necklace”, AmberLocket | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Van_Cleef_%26_Arpels_Amenta_Necklace.jpg) |
+| `freshly-baked-bread.jpg` | “Freshly baked loaves of Bread”, IfyClassique | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Freshly_baked_loaves_of_Bread.jpg) |
 
 Several pictures are category examples rather than exact vendor stock, model, package size, or brand variant. They are intentionally marked as samples; vendors should replace them with photos of the items they sell.

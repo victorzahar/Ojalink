@@ -22,10 +22,10 @@ export default async function LoginPage() {
 
   return (
     <div>
-      <h1 className="font-heading text-[28px] leading-tight font-bold text-foreground">
+      <h1 className="font-heading text-[28px] leading-tight font-bold text-background drop-shadow-sm">
         Welcome back
       </h1>
-      <p className="mt-1 mb-4 text-base text-muted-foreground">
+      <p className="mt-1 mb-4 text-base text-background/95 drop-shadow-sm">
         Log in to continue trading on OjaLink.
       </p>
       <LoginForm />
