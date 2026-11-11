@@ -30,7 +30,8 @@ export function ScrollReveal({
     if (!element) return;
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) {
-      setVisible(true);
+      // Defer so the effect body never calls setState synchronously.
+      queueMicrotask(() => setVisible(true));
       return;
     }
 
@@ -44,7 +45,8 @@ export function ScrollReveal({
     );
 
     observer.observe(element);
-    setArmed(true);
+    // Defer so the effect body never calls setState synchronously.
+    queueMicrotask(() => setArmed(true));
     return () => observer.disconnect();
   }, []);
 
