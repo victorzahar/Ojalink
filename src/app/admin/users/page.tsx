@@ -9,7 +9,7 @@ import { users } from "@/lib/db/schema";
 export const instant = false;
 
 export default async function AdminUsersPage() {
-  await requireRole("admin");
+  const auth = await requireRole("admin");
 
   const accounts = await getDb()
     .select({
@@ -28,7 +28,7 @@ export default async function AdminUsersPage() {
       title="Users"
       description="Find and inspect OjaLink buyer, vendor, rider and admin accounts."
     >
-      <AdminUserList users={accounts} />
+      <AdminUserList users={accounts} currentUserId={auth.id} />
     </AdminPageShell>
   );
 }

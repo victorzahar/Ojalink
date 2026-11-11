@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { updateUserRole } from "@/app/admin/users/actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { userRoles, type UserRole } from "@/lib/auth/role-home";
 import type { users } from "@/lib/db/schema";
@@ -20,10 +21,42 @@ function formatCreatedDate(date: Date) {
   }).format(date);
 }
 
-export function AdminUserList({ users: accounts }: { users: AdminUser[] }) {
+export function AdminUserList({
+  users: accounts,
+  currentUserId,
+}: {
+  users: AdminUser[];
+  currentUserId: string;
+}) {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<Record<string, { ok: boolean; text: string }>>({});
   const searchTerm = search.trim().toLowerCase();
+
+  async function saveRole(userId: string, nextRole: string) {
+    setPendingUserId(userId);
+    setFeedback((current) => {
+      const next = { ...current };
+      delete next[userId];
+      return next;
+    });
+
+    try {
+      const result = await updateUserRole(userId, nextRole);
+      setFeedback((current) => ({
+        ...current,
+        [userId]: { ok: result.ok, text: result.message },
+      }));
+    } catch {
+      setFeedback((current) => ({
+        ...current,
+        [userId]: { ok: false, text: "Could not update this role. Please try again." },
+      }));
+    } finally {
+      setPendingUserId(null);
+    }
+  }
 
   const filteredAccounts = accounts.filter((account) => {
     const matchesSearch =
@@ -43,7 +76,7 @@ export function AdminUserList({ users: accounts }: { users: AdminUser[] }) {
         <div>
           <CardTitle>User accounts</CardTitle>
           <CardDescription>
-            {filteredAccounts.length} {countLabel} shown. This list is read-only.
+            {filteredAccounts.length} {countLabel} shown. Change a role with the picker under each account; you cannot change your own role.
           </CardDescription>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -109,21 +142,50 @@ export function AdminUserList({ users: accounts }: { users: AdminUser[] }) {
                       {account.phone || "Not provided"}
                     </dd>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <dt className="text-sm text-muted-foreground">Role</dt>
-                      <dd className="mt-1 font-medium capitalize text-foreground">
-                        {account.role}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm text-muted-foreground">Created</dt>
-                      <dd className="mt-1 font-medium text-foreground">
-                        <time dateTime={account.createdAt.toISOString()}>
-                          {formatCreatedDate(account.createdAt)}
-                        </time>
-                      </dd>
-                    </div>
+                  <div>
+                    <dt className="text-sm text-muted-foreground">Created</dt>
+                    <dd className="mt-1 font-medium text-foreground">
+                      <time dateTime={account.createdAt.toISOString()}>
+                        {formatCreatedDate(account.createdAt)}
+                      </time>
+                    </dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-sm text-muted-foreground">Role</dt>
+                    <dd className="mt-1">
+                      {account.id === currentUserId ? (
+                        <span className="font-medium capitalize text-foreground">
+                          {account.role} (you)
+                        </span>
+                      ) : (
+                        <select
+                          aria-label={`Role for ${account.name}`}
+                          className="h-10 w-full rounded-md border border-input bg-background px-2 text-base text-foreground"
+                          defaultValue={account.role}
+                          disabled={pendingUserId !== null}
+                          onChange={(event) => void saveRole(account.id, event.target.value)}
+                        >
+                          {userRoles.map((role) => (
+                            <option key={role} value={role}>
+                              {role[0].toUpperCase() + role.slice(1)}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </dd>
+                    {feedback[account.id] && (
+                      <p
+                        className={`mt-1 text-xs ${feedback[account.id].ok ? "text-muted-foreground" : "text-destructive"}`}
+                        role={feedback[account.id].ok ? "status" : "alert"}
+                      >
+                        {feedback[account.id].text}
+                      </p>
+                    )}
+                    {pendingUserId === account.id && (
+                      <p className="mt-1 text-xs text-muted-foreground" role="status">
+                        Saving…
+                      </p>
+                    )}
                   </div>
                 </dl>
               </li>
