@@ -86,9 +86,10 @@ export async function searchProducts(options: {
   q?: string;
   categorySlug?: string;
   vendorSlug?: string;
+  limit?: number;
 }): Promise<MarketplaceProduct[]> {
   const db = getDb();
-  const rows = await db
+  const rowsQuery = db
     .select({
       id: products.id,
       name: products.name,
@@ -107,6 +108,10 @@ export async function searchProducts(options: {
     .innerJoin(categories, eq(products.categoryId, categories.id))
     .where(productSearchScope(options))
     .orderBy(desc(products.createdAt));
+
+  const rows = await (options.limit !== undefined
+    ? rowsQuery.limit(options.limit)
+    : rowsQuery);
 
   if (rows.length === 0) return rows;
 

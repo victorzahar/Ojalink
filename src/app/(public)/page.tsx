@@ -1,174 +1,100 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Search, Store, MapPin, ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronRight, MapPin, PackageCheck, Search, Store } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { getCategories, getFeaturedVendors } from "@/lib/marketplace/queries";
+import { CategoryTicker, FaqItem, FeatureCard, Section, StepCard } from "@/components/landing/landing-components";
+import { ScrollReveal } from "@/components/landing/scroll-reveal";
+import { benefits, faqs, landingCategories, landingSteps, trustPoints } from "@/lib/landing/content";
 
 export const instant = false;
 
-export default async function HomePage() {
-  const [categoriesList, featuredVendorsList] = await Promise.all([
-    getCategories(),
-    getFeaturedVendors(6),
-  ]);
-
+export default function LandingPage() {
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-4 py-8 sm:px-6 sm:py-12">
-      {/* Hero Section */}
-      <section className="flex flex-col items-center text-center space-y-4 max-w-2xl mx-auto pt-2 sm:pt-6">
-        <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground sm:text-4xl sm:leading-tight">
-          Benin City Market, Online
-        </h1>
-        <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
-          Order fresh food, fabrics, electronics, and daily provisions from trusted local market vendors and have them delivered.
-        </p>
-
-        {/* Search Box */}
-        <form
-          action="/marketplace"
-          method="GET"
-          className="w-full pt-4 flex flex-col sm:flex-row gap-2.5 sm:gap-3"
-        >
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-5 text-muted-foreground pointer-events-none" />
-            <Input
-              type="search"
-              name="q"
-              placeholder="Search for yam, rice, fabrics, phones..."
-              aria-label="Search products"
-              className="h-12 w-full pl-11 rounded-lg border-border bg-card text-base shadow-xs"
-            />
-          </div>
-          <Button
-            type="submit"
-            className="h-12 w-full sm:w-auto px-6 font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg shrink-0"
-          >
-            Search products
-          </Button>
-        </form>
-      </section>
-
-      {/* Categories Section */}
-      <section className="space-y-4 pt-2">
-        <div className="flex items-center justify-between">
-          <h2 className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-            Browse by category
-          </h2>
-          <Link
-            href="/marketplace"
-            className="text-sm font-semibold text-primary hover:underline flex items-center gap-1"
-          >
-            All products
-            <ArrowRight className="size-4" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-          {categoriesList.map((category) => (
-            <Link
-              key={category.id}
-              href={`/marketplace?category=${encodeURIComponent(category.slug)}`}
-              className="group flex flex-col items-center justify-center p-4 sm:p-5 rounded-xl border border-border/80 bg-card hover:border-primary hover:shadow-xs transition-all text-center"
-            >
-              <span className="font-heading font-semibold text-foreground group-hover:text-primary transition-colors text-base sm:text-lg">
-                {category.name}
-              </span>
-              <span className="text-xs text-muted-foreground mt-1">Explore goods &rarr;</span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Featured Vendors Section */}
-      {featuredVendorsList.length > 0 && (
-        <section className="space-y-4 pt-4">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2.5">
-              <h2 className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-                Featured vendors
-              </h2>
-              <span className="bg-[#E8730C] text-[#1B1B1F] font-semibold text-xs px-2.5 py-0.5 rounded-full">
-                Featured
-              </span>
+    <main className="mx-auto flex w-full max-w-screen-2xl flex-1 flex-col gap-10 px-4 py-6 sm:gap-16 sm:px-8 sm:py-10 lg:px-12">
+      <ScrollReveal as="section" className="grid items-center gap-7 lg:grid-cols-[1fr_1.05fr] lg:gap-10">
+        <div className="space-y-5 py-2 sm:py-4">
+          <p className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary"><MapPin aria-hidden="true" className="size-4" /> Benin City, Edo State</p>
+          <h1 className="font-heading text-5xl font-bold italic leading-tight tracking-tight text-primary sm:text-6xl">OjaLink</h1>
+          <h2 className="font-sans text-xl font-semibold leading-tight tracking-tight text-foreground sm:text-2xl">Benin City Online, Market</h2>
+          <p className="max-w-xl text-sm font-light italic leading-relaxed text-muted-foreground">Order fresh food, fabrics, electronics, and daily provisions from trusted local market vendors and have them delivered to your door.</p>
+          <form action="/marketplace" method="GET" className="space-y-3 pt-1">
+            <label htmlFor="landing-search" className="sr-only">Search marketplace products</label>
+            <div className="flex min-h-14 items-center gap-2 rounded-2xl border border-border bg-background p-1.5 shadow-sm">
+              <Search aria-hidden="true" className="ml-2 size-5 shrink-0 text-muted-foreground" />
+              <Input id="landing-search" type="search" name="q" placeholder="Search yam, rice, fabrics, phones…" className="h-11 min-w-0 flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0" />
+              <Button type="submit" size="icon" aria-label="Search products" className="size-11 shrink-0 rounded-xl"><Search aria-hidden="true" className="size-5" /></Button>
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Approved sellers from verified Benin City markets
-            </p>
+          </form>
+          <div className="flex flex-col gap-3 pt-1 min-[420px]:flex-row">
+            <Button asChild className="min-h-12 rounded-xl px-5 font-semibold"><Link href="/marketplace">Browse marketplace <ArrowRight aria-hidden="true" className="ml-1 size-4" /></Link></Button>
+            <Button asChild variant="outline" className="min-h-12 rounded-xl border-primary/40 px-5 font-semibold text-primary"><Link href="#become-vendor">Become a vendor</Link></Button>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {featuredVendorsList.map((vendor) => (
-              <Card
-                key={vendor.id}
-                className="rounded-xl border border-border/80 bg-card shadow-xs hover:border-primary/60 transition-all flex flex-col justify-between p-5"
-              >
-                <CardContent className="p-0 space-y-2.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                        <Store className="size-5" />
-                      </div>
-                      <h3 className="font-heading text-lg font-bold text-foreground line-clamp-1">
-                        {vendor.shopName}
-                      </h3>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <MapPin className="size-3.5 shrink-0 text-primary" />
-                    <span>
-                      {vendor.marketName} &middot; {vendor.marketArea}
-                    </span>
-                  </div>
-
-                  {vendor.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2 pt-1 leading-relaxed">
-                      {vendor.description}
-                    </p>
-                  )}
-                </CardContent>
-
-                <div className="pt-4 mt-auto">
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="h-12 w-full font-semibold border-primary/40 text-primary hover:bg-primary hover:text-white rounded-lg"
-                  >
-                    <Link
-                      href={`/marketplace?vendor=${encodeURIComponent(vendor.slug)}`}
-                    >
-                      View shop products
-                    </Link>
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Call to action footer banner */}
-      <section className="rounded-2xl border border-primary/20 bg-primary/5 p-6 sm:p-8 text-center space-y-3 mt-4">
-        <h2 className="font-heading text-xl sm:text-2xl font-bold text-foreground">
-          Ready to order from the market?
-        </h2>
-        <p className="text-sm sm:text-base text-muted-foreground max-w-lg mx-auto">
-          Explore all approved products, compare real prices in Naira, and order directly to your doorstep.
-        </p>
-        <div className="pt-2">
-          <Button
-            asChild
-            className="h-12 px-6 font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg w-full sm:w-auto"
-          >
-            <Link href="/marketplace">
-              Go to marketplace
-              <ArrowRight className="size-4 ml-1.5" />
-            </Link>
-          </Button>
         </div>
-      </section>
+        <div className="relative min-h-64 overflow-hidden rounded-2xl bg-muted sm:min-h-80 lg:min-h-[25rem]">
+          <Image src="/images/landing/benin-city-new-benin-market.jpg" alt="A market day view of New Benin Market in Benin City" fill priority sizes="(max-width: 1024px) 100vw, 55vw" className="object-cover" />
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent p-5 pt-20 text-white sm:p-6 sm:pt-24">
+            <p className="font-heading text-lg font-bold">Shop the markets you know</p>
+            <p className="mt-1 text-sm text-white/90">Find fresh and everyday good from benin city vendors</p>
+          </div>
+        </div>
+      </ScrollReveal>
+
+      <ScrollReveal as="section" labelledBy="landing-categories-heading" className="space-y-5 rounded-3xl border border-border bg-muted/60 p-5 shadow-sm sm:p-8">
+        <div className="flex items-end justify-between gap-3">
+          <div><p className="text-sm font-bold uppercase tracking-wider text-primary">Shop local</p><h2 id="landing-categories-heading" className="mt-1 font-heading text-2xl font-bold sm:text-3xl">Browse by category</h2></div>
+          <Link href="/marketplace" className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-primary hover:underline">All products <ChevronRight aria-hidden="true" className="size-4" /></Link>
+        </div>
+        <CategoryTicker categories={landingCategories} />
+      </ScrollReveal>
+
+      <ScrollReveal as="section" id="how-it-works" className="scroll-mt-24 rounded-3xl border border-primary/10 bg-primary/5 p-5 sm:p-9">
+        <Section title="From market to your door" className="space-y-6 sm:space-y-8">
+          <ol className="mx-auto grid w-full max-w-5xl gap-4 sm:gap-5">
+            {landingSteps.map(({ Icon, ...step }, index) => (
+              <ScrollReveal as="li" key={step.number} delay={index * 90}>
+                <StepCard {...step} icon={<Icon aria-hidden="true" className="size-7" />} />
+              </ScrollReveal>
+            ))}
+          </ol>
+        </Section>
+      </ScrollReveal>
+
+      <ScrollReveal as="section" id="about" className="scroll-mt-24 rounded-3xl bg-muted/70 p-5 sm:p-9">
+      <Section eyebrow="About OjaLink" title="Bringing Benin City markets online" description="OjaLink connects shoppers with local vendors so familiar market goods are easier to discover and order.">
+        <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
+          {trustPoints.map((point, index) => {
+            return <ScrollReveal key={point.title} delay={index * 100} className="h-full"><FeatureCard {...point} /></ScrollReveal>;
+          })}
+        </div>
+      </Section>
+      </ScrollReveal>
+
+      <ScrollReveal as="section" className="rounded-3xl border border-border bg-card/80 p-5 shadow-sm sm:p-9">
+      <Section eyebrow="Why OjaLink" title="A more convenient way to shop local" description="Discover everyday goods from local businesses, with clear product information along the way.">
+        <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
+          {benefits.map((benefit, index) => {
+            const icons = [<Store key="store" className="size-6" />, <MapPin key="market" className="size-6" />, <PackageCheck key="price" className="size-6" />];
+            return <ScrollReveal key={benefit.title} delay={index * 100} className="h-full"><FeatureCard icon={icons[index]} {...benefit} /></ScrollReveal>;
+          })}
+        </div>
+      </Section>
+
+      </ScrollReveal>
+
+      <ScrollReveal as="section" id="become-vendor" className="scroll-mt-24 rounded-3xl border border-primary/15 bg-primary/5 p-6 text-center shadow-sm sm:p-10">
+        <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary"><Store aria-hidden="true" className="size-7" /></span>
+        <h2 className="mt-4 font-heading text-2xl font-bold sm:text-3xl">Bring your shop to OjaLink</h2>
+        <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">Create an account to get started, then contact the OjaLink team to request vendor access. Vendor shops require approval before selling.</p>
+        <Button asChild className="mt-5 min-h-12 rounded-xl px-5 font-semibold"><Link href="/signup">Create an account <ArrowRight aria-hidden="true" className="ml-1 size-4" /></Link></Button>
+      </ScrollReveal>
+
+      <ScrollReveal as="section" className="rounded-3xl bg-muted/60 p-5 sm:p-9">
+        <Section eyebrow="Need to know" title="Frequently asked questions" description="Helpful information about shopping on OjaLink.">
+          <div className="mx-auto grid max-w-4xl gap-3">{faqs.map((faq, index) => <ScrollReveal key={faq.question} delay={Math.min(index, 4) * 70}><FaqItem {...faq} /></ScrollReveal>)}</div>
+        </Section>
+      </ScrollReveal>
     </main>
   );
 }
