@@ -44,6 +44,9 @@ export default async function BuyerPage() {
           <Button asChild variant="outline" className="w-full">
             <Link href="/vendor/apply">Become a vendor</Link>
           </Button>
+          <Button asChild variant="outline" className="w-full">
+            <Link href="/rider/apply">Become a rider</Link>
+          </Button>
           <LogoutButton className="w-full sm:w-auto" />
         </CardContent>
       </Card>
