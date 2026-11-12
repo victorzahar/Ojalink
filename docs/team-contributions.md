@@ -7,13 +7,13 @@ This roster combines the team assignment screenshot with the ownership details r
 | Michael Iyoha | 5 — Vendor product manager (merged on main) | 9 — Docs & README | [PR #3](https://github.com/victorzahar/Ojalink/pull/3) — merged |
 | Feature 1 owner — to confirm | 1 — Marketplace and search (merged on main) | Project lead | [PR #12](https://github.com/victorzahar/Ojalink/pull/12) — merged |
 | Edegbe Esohe Favour | 2 — Vendor storefronts | Client & research lead | [feature/vendor-storefront](https://github.com/victorzahar/Ojalink/tree/feature/vendor-storefront) — screenshot and Neon data check pending |
-| To confirm | 3 — Cart and checkout | UX & wireframes | Add link |
+| Edegbe Esohe Favour | 3 - Cart and checkout (merged on main) | Client & research lead | [PR #17](https://github.com/victorzahar/Ojalink/pull/17) - merged |
 | Humphrey Uwagboe Igbinore | 4 — Buyer order tracking (merged) | Content writer | [PR #4](https://github.com/victorzahar/Ojalink/pull/4) — merged; evidence: [docs/order-tracking.md](order-tracking.md) |
 | Egbon Aisosa | 6 — Vendor orders and payouts (merged on main) | QA test lead | [PR #9](https://github.com/victorzahar/Ojalink/pull/9) — merged |
 | Iyen Monica | 7 — Rider app (merged on main) | Accessibility & mobile reviewer | [PR #11](https://github.com/victorzahar/Ojalink/pull/11) — merged |
 | Ajari Obed | 8 — Admin and disputes (merged on main) | Security & access tester | [PR #8](https://github.com/victorzahar/Ojalink/pull/8) — merged; label fix in PR #13 |
 | To confirm | 9 — Notifications and automations | Docs & README | Add link |
-| Zahar | 10 — Accounts, roles and security | Pitch & demo lead | [PR #2](https://github.com/victorzahar/Ojalink/pull/2); screenshots in [docs/screenshots](screenshots/) |
+| Zahar | 10 - Accounts, roles and security | Pitch & demo lead | [PR #2](https://github.com/victorzahar/Ojalink/pull/2); role management and vendor/rider applications [PR #25](https://github.com/victorzahar/Ojalink/pull/25), signup role choice [PR #27](https://github.com/victorzahar/Ojalink/pull/27); screenshots in [docs/screenshots](screenshots/) |
 
 ## Feature notes received
 
@@ -28,6 +28,10 @@ The owner reports a public `/vendors/[slug]` page for approved vendors with shop
 The owner could not capture a working screenshot because `/vendors/adaeze-fabrics` currently fails its database query. The cause has not been confirmed by querying Neon. Earlier focused tests, lint and a production build passed, but did not verify the storefront against live Neon data.
 
 After database setup, check an approved vendor with products, a missing or unapproved vendor, and empty product/review states. Capture the page at phone width.
+
+### Feature 3 — Cart and checkout
+
+Merged in [PR #17](https://github.com/victorzahar/Ojalink/pull/17). Buyers have a single-vendor cart with quantity editing, stock-aware totals, and a Paystack checkout that marks orders paid. Cart access is buyer-scoped on the server; stock reservations prevent overselling while an order is unpaid.
 
 ### Feature 4 — Buyer order tracking
 
