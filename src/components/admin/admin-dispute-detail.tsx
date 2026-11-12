@@ -253,7 +253,14 @@ export function AdminDisputeDetail({ record }: AdminDisputeDetailProps) {
           </CardHeader>
           <CardContent className="grid gap-5 sm:grid-cols-2">
             <div>
-              <h3 className="font-medium text-foreground">Buyer</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-foreground">Buyer</h3>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                  record.buyer.phone ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                }`}>
+                  {record.buyer.phone ? "Buyer Tier 1 (Phone Verified)" : "Tier 0 (Unverified)"}
+                </span>
+              </div>
               <p className="mt-2 break-words text-foreground">{record.buyer.name}</p>
               <p className="break-all text-sm text-muted-foreground">{record.buyer.email}</p>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -261,9 +268,21 @@ export function AdminDisputeDetail({ record }: AdminDisputeDetailProps) {
               </p>
             </div>
             <div>
-              <h3 className="font-medium text-foreground">Vendor</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-foreground">Vendor</h3>
+                <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
+                  Vendor Verified
+                </span>
+              </div>
               <p className="mt-2 break-words text-foreground">{record.vendor.shopName}</p>
               <p className="text-sm text-muted-foreground">{record.vendor.ownerName}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Location & stall verified in Benin City</p>
+            </div>
+            <div className="sm:col-span-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+              <span className="font-semibold">Dispute Risk Signal & Ongoing Monitoring:</span>
+              <p className="mt-1">
+                Nigeria verification policy recommends reviewing vendor delivery history and holding next payouts if repeated nondelivery or goods-missing complaints occur.
+              </p>
             </div>
             <div className="sm:col-span-2 border-t border-border pt-4">
               <h3 className="font-medium text-foreground">Payment</h3>
