@@ -301,7 +301,7 @@ export function RiderApplyForm({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <label htmlFor="bankAccountNumber" className="text-sm font-medium text-foreground">
-                  NUBAN Account number (10 digits) <span className="text-destructive">*</span>
+                  NUBAN (10 digits) <span className="text-destructive">*</span>
                 </label>
                 <input
                   id="bankAccountNumber"
@@ -317,14 +317,14 @@ export function RiderApplyForm({
 
               <div className="grid gap-1.5">
                 <label htmlFor="bankAccountName" className="text-sm font-medium text-foreground">
-                  Account holder name <span className="text-destructive">*</span>
+                  Account name <span className="text-destructive">*</span>
                 </label>
                 <input
                   id="bankAccountName"
                   name="bankAccountName"
                   type="text"
                   required
-                  placeholder="Must match your legal name"
+                  placeholder="Legal account name"
                   className="h-11 rounded-md border border-input bg-background px-3 text-base text-foreground"
                 />
               </div>
