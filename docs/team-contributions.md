@@ -5,7 +5,7 @@ This roster combines the team assignment screenshot with the ownership details r
 | Teammate | Feature | Non-code role | Commit / PR link |
 |---|---|---|---|
 | Michael Iyoha | 5 — Vendor product manager (merged on main) | 9 — Docs & README | [PR #3](https://github.com/victorzahar/Ojalink/pull/3) — merged |
-| Feature 1 owner — to confirm | 1 — Marketplace and search (merged on main) | Project lead | [PR #12](https://github.com/victorzahar/Ojalink/pull/12) — merged |
+| Zahar | 1 - Marketplace and search (merged on main) | Project lead | [PR #12](https://github.com/victorzahar/Ojalink/pull/12) - merged |
 | Edegbe Esohe Favour | 2 — Vendor storefronts | Client & research lead | [feature/vendor-storefront](https://github.com/victorzahar/Ojalink/tree/feature/vendor-storefront) — screenshot and Neon data check pending |
 | Edegbe Esohe Favour | 3 - Cart and checkout (merged on main) | Client & research lead | [PR #17](https://github.com/victorzahar/Ojalink/pull/17) - merged |
 | Humphrey Uwagboe Igbinore | 4 — Buyer order tracking (merged) | Content writer | [PR #4](https://github.com/victorzahar/Ojalink/pull/4) — merged; evidence: [docs/order-tracking.md](order-tracking.md) |
