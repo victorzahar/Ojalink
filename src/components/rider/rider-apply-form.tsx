@@ -10,42 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 const RIDER_NOTE_MAX = 200;
 
-const NIGERIAN_BANKS = [
-  "Access Bank",
-  "Citibank Nigeria",
-  "Ecobank Nigeria",
-  "Fidelity Bank",
-  "First Bank of Nigeria",
-  "First City Monument Bank (FCMB)",
-  "Guaranty Trust Bank (GTBank)",
-  "Heritage Bank",
-  "Keystone Bank",
-  "Kuda Bank",
-  "Moniepoint MFB",
-  "OPay",
-  "PalmPay",
-  "Polaris Bank",
-  "Stanbic IBTC Bank",
-  "Standard Chartered Bank",
-  "Sterling Bank",
-  "Union Bank of Nigeria",
-  "United Bank for Africa (UBA)",
-  "Unity Bank",
-  "Wema Bank / ALAT",
-  "Zenith Bank",
-];
-
-const BENIN_CITY_ZONES = [
-  "Ring Road / Oba Market / City Centre",
-  "Ugbowo / UNIBEN Campus / Oluku",
-  "GRA / Airport Road",
-  "New Benin / Mission Road",
-  "Ikpoba Hill / Aduwawa",
-  "Ekenwan Road / Dumez",
-  "Sapele Road / Country Home",
-  "Upper Sokponba / St. Saviour",
-];
-
 export function RiderApplyForm({
   contactPhone,
   isReapply = false,
@@ -58,7 +22,7 @@ export function RiderApplyForm({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // File preview states
+  // File upload state for display
   const [portraitName, setPortraitName] = useState<string | null>(null);
   const [guarantorDocName, setGuarantorDocName] = useState<string | null>(null);
 
@@ -105,27 +69,16 @@ export function RiderApplyForm({
   return (
     <Card size="sm">
       <CardHeader>
-        <CardTitle>{isReapply ? "Update Rider Verification Documents" : "Apply to Deliver on OjaLink"}</CardTitle>
+        <CardTitle>Rider Application & Verification</CardTitle>
         <CardDescription>
-          {isReapply
-            ? "Update your logistics, identification, and guarantor details to re-submit your rider application for admin review."
-            : "Provide your vehicle, identity, and guarantor verification details. Admins verify every rider to protect shoppers and vendors across Benin City."}
+          Provide your vehicle details and Nigerian verification documents. Admins review all credentials before granting delivery access.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isReapply && (
-          <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="alert">
-            <p className="font-semibold">Re-applying for Rider Access</p>
-            <p className="mt-0.5 text-xs">
-              Your previous application was not approved. Please verify that your vehicle registration, 11-digit NIN, and guarantor letter details are accurate and clearly readable.
-            </p>
-          </div>
-        )}
-
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           {/* Section 1: Logistics & Vehicle */}
           <div className="space-y-3 border-b border-border pb-4">
-            <h3 className="text-sm font-semibold text-foreground">1. Logistics & Vehicle</h3>
+            <h3 className="text-sm font-semibold text-foreground">1. Vehicle & Logistics</h3>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
@@ -155,7 +108,7 @@ export function RiderApplyForm({
                   name="plateNumber"
                   type="text"
                   required
-                  placeholder="e.g. EDO-452-BEN (or N/A for bicycle)"
+                  placeholder="e.g. EDO-452-BEN (or N/A)"
                   className="h-11 rounded-md border border-input bg-background px-3 text-base text-foreground"
                 />
               </div>
@@ -165,32 +118,28 @@ export function RiderApplyForm({
               <label htmlFor="deliveryZone" className="text-sm font-medium text-foreground">
                 Primary delivery zone in Benin City <span className="text-destructive">*</span>
               </label>
-              <select
+              <input
                 id="deliveryZone"
                 name="deliveryZone"
+                type="text"
                 required
                 defaultValue="Ugbowo / UNIBEN Campus / Oluku"
+                placeholder="e.g. Ugbowo, Ring Road, GRA, New Benin"
                 className="h-11 rounded-md border border-input bg-background px-3 text-base text-foreground"
-              >
-                {BENIN_CITY_ZONES.map((zone) => (
-                  <option key={zone} value={zone}>
-                    {zone}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
           </div>
 
           {/* Section 2: Identity & Required Photos */}
           <div className="space-y-3 border-b border-border pb-4">
-            <h3 className="text-sm font-semibold text-foreground">2. Rider Identity & Photos</h3>
+            <h3 className="text-sm font-semibold text-foreground">2. Identity & Photos</h3>
             <p className="text-xs text-muted-foreground">
               Required for customer trust and delivery verification. In development mode, demo test photos will automatically be used if no files are uploaded.
             </p>
 
             <div className="grid gap-1.5">
               <label htmlFor="portrait" className="text-sm font-medium text-foreground">
-                Your personal portrait photo <span className="text-muted-foreground">(passport / clear selfie)</span>
+                Your personal portrait photo
               </label>
               <input
                 id="portrait"
@@ -201,7 +150,7 @@ export function RiderApplyForm({
                 className="text-sm file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-foreground"
               />
               <p className="text-xs text-muted-foreground">
-                {portraitName ? `Selected: ${portraitName}` : "Clear front-facing photo of your face. Max 3MB."}
+                {portraitName ? `Selected: ${portraitName}` : "Clear front-facing photo of yourself. Max 3MB."}
               </p>
             </div>
 
@@ -224,7 +173,7 @@ export function RiderApplyForm({
 
               <div className="grid gap-1.5">
                 <label htmlFor="phone" className="text-sm font-medium text-foreground">
-                  Phone (Calls / WhatsApp) <span className="text-destructive">*</span>
+                  Phone (WhatsApp / OTP) <span className="text-destructive">*</span>
                 </label>
                 <input
                   id="phone"
@@ -269,39 +218,31 @@ export function RiderApplyForm({
             </div>
           </div>
 
-          {/* Section 3: Delivery Payout Bank Account */}
+          {/* Section 3: Payout Bank Account */}
           <div className="space-y-3 border-b border-border pb-4">
-            <h3 className="text-sm font-semibold text-foreground">3. Bank Account for Delivery Earnings</h3>
+            <h3 className="text-sm font-semibold text-foreground">3. Bank Account for Weekly Payouts</h3>
             <p className="text-xs text-muted-foreground">
-              Your weekly delivery fees and tips will be transferred directly to this Nigerian bank account.
+              Your weekly delivery earnings and tips will be transferred directly to this Nigerian bank account.
             </p>
 
             <div className="grid gap-1.5">
               <label htmlFor="bankName" className="text-sm font-medium text-foreground">
                 Bank name <span className="text-destructive">*</span>
               </label>
-              <select
+              <input
                 id="bankName"
                 name="bankName"
+                type="text"
                 required
-                defaultValue=""
+                placeholder="e.g. Access Bank, GTBank, First Bank, Zenith, OPay"
                 className="h-11 rounded-md border border-input bg-background px-3 text-base text-foreground"
-              >
-                <option value="" disabled>
-                  Select your bank
-                </option>
-                {NIGERIAN_BANKS.map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <label htmlFor="bankAccountNumber" className="text-sm font-medium text-foreground">
-                  NUBAN (10 digits) <span className="text-destructive">*</span>
+                  NUBAN Account number (10 digits) <span className="text-destructive">*</span>
                 </label>
                 <input
                   id="bankAccountNumber"
@@ -317,25 +258,25 @@ export function RiderApplyForm({
 
               <div className="grid gap-1.5">
                 <label htmlFor="bankAccountName" className="text-sm font-medium text-foreground">
-                  Account name <span className="text-destructive">*</span>
+                  Account holder name <span className="text-destructive">*</span>
                 </label>
                 <input
                   id="bankAccountName"
                   name="bankAccountName"
                   type="text"
                   required
-                  placeholder="Legal account name"
+                  placeholder="e.g. Osasere Agbonlahor"
                   className="h-11 rounded-md border border-input bg-background px-3 text-base text-foreground"
                 />
               </div>
             </div>
           </div>
 
-          {/* Section 4: Guarantor Letter & Signature Verification */}
+          {/* Section 4: Trust & Guarantor */}
           <div className="space-y-3 border-b border-border pb-4">
             <h3 className="text-sm font-semibold text-foreground">4. Guarantor Information & Document Check</h3>
             <p className="text-xs text-muted-foreground">
-              Every OjaLink rider must have a verified Nigerian adult guarantor resident in Benin City or Edo State (e.g. Landlord, Community Leader, Employer, or Parent).
+              Contact info of an adult guarantor resident in Benin City or Edo State (e.g. Landlord, Community Leader, Employer, or Parent).
             </p>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -405,7 +346,7 @@ export function RiderApplyForm({
 
             <div className="grid gap-1.5">
               <label htmlFor="guarantorDoc" className="text-sm font-medium text-foreground">
-                Signed Guarantor Letter / ID Document <span className="text-muted-foreground">(Optional file upload)</span>
+                Signed Guarantor Letter / ID Document <span className="text-muted-foreground">(optional)</span>
               </label>
               <input
                 id="guarantorDoc"
@@ -418,7 +359,7 @@ export function RiderApplyForm({
               <p className="text-xs text-muted-foreground">
                 {guarantorDocName
                   ? `Selected: ${guarantorDocName}`
-                  : "Signed letter or guarantor government ID. If not uploaded now, admin will verify via phone confirmation."}
+                  : "Signed letter or government ID. If not uploaded now, admin verifies via phone call."}
               </p>
             </div>
 
@@ -432,7 +373,7 @@ export function RiderApplyForm({
                 rows={2}
                 maxLength={RIDER_NOTE_MAX}
                 className="rounded-md border border-input bg-background px-3 py-2 text-base text-foreground"
-                placeholder="e.g. Available every day 8am to 7pm around Ugbowo and Ring Road."
+                placeholder="e.g. Available daily from 8am to 7pm around Ugbowo and Ring Road."
               />
             </div>
           </div>
@@ -444,7 +385,11 @@ export function RiderApplyForm({
           )}
 
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? "Sending application…" : isReapply ? "Re-submit application for review" : "Submit rider application"}
+            {submitting
+              ? "Submitting rider application…"
+              : isReapply
+              ? "Re-submit application for review"
+              : "Submit rider application"}
           </Button>
         </form>
       </CardContent>
