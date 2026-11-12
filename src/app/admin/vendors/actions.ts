@@ -7,6 +7,7 @@ import { requireRole } from "@/lib/auth/guard";
 import { setUserRoleAsAdmin } from "@/lib/auth/roles";
 import { getDb } from "@/lib/db";
 import { vendors } from "@/lib/db/schema";
+import { recordVerificationAuditLog } from "@/lib/verification/security-guard";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -55,31 +56,48 @@ export async function updateVendorApprovalStatus(
       };
     }
 
-    // Approving a shop grants its owner vendor access. Rejected
-    // applications leave or return the applicant to a buyer.
+    // Approving a shop grants its owner vendor access. Disabling or rejecting
+    // offboards the vendor, revokes vendor access, and returns them to a buyer.
     if (newStatus === "approved") {
       await setUserRoleAsAdmin({
         actorId: auth.id,
         userId: updatedVendor.userId,
         role: "vendor",
       });
+
+      recordVerificationAuditLog(
+        auth.id,
+        updatedVendor.userId,
+        "approve_vendor",
+        "Vendor approved and activated by admin",
+      );
     } else if (newStatus === "rejected") {
       await setUserRoleAsAdmin({
         actorId: auth.id,
         userId: updatedVendor.userId,
         role: "buyer",
       });
+
+      recordVerificationAuditLog(
+        auth.id,
+        updatedVendor.userId,
+        "suspend_account",
+        "Vendor disabled / offboarded by admin: role reverted to buyer and products hidden",
+      );
     }
 
     revalidatePath("/admin/vendors");
     revalidatePath("/vendor/apply");
     revalidatePath("/buyer");
+    revalidatePath("/marketplace");
+    revalidatePath("/vendors");
+
     return {
       ok: true,
       message:
         newStatus === "approved"
-          ? "Vendor approved successfully."
-          : "Vendor application rejected.",
+          ? "Vendor activated successfully."
+          : "Vendor disabled — storefront hidden and role reverted to buyer.",
     };
   } catch {
     return {

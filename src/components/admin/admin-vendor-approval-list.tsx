@@ -38,7 +38,7 @@ type Feedback = { ok: boolean; message: string };
 const statusLabels: Record<VendorApprovalStatus, string> = {
   pending: "Pending",
   approved: "Approved",
-  rejected: "Rejected",
+  rejected: "Disabled / Rejected",
 };
 
 const statusStyles: Record<VendorApprovalStatus, string> = {
@@ -60,6 +60,7 @@ export function AdminVendorApprovalList({ vendors }: { vendors: AdminVendor[] })
   const [pendingVendorId, setPendingVendorId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Record<string, Feedback>>({});
   const [expandedChecklistVendorId, setExpandedChecklistVendorId] = useState<string | null>(null);
+  const [confirmDisableVendorId, setConfirmDisableVendorId] = useState<string | null>(null);
 
   const filteredVendors =
     filter === "all"
@@ -281,7 +282,7 @@ export function AdminVendorApprovalList({ vendors }: { vendors: AdminVendor[] })
                       </p>
                     ) : null}
 
-                    {vendor.approvalStatus === "pending" ? (
+                    {vendor.approvalStatus === "pending" && (
                       <div className="mt-5 flex flex-col gap-2 border-t border-border pt-4 sm:flex-row">
                         <Button
                           className="w-full"
@@ -299,7 +300,61 @@ export function AdminVendorApprovalList({ vendors }: { vendors: AdminVendor[] })
                           {isUpdating ? "Saving…" : "Reject"}
                         </Button>
                       </div>
-                    ) : null}
+                    )}
+
+                    {vendor.approvalStatus === "approved" && (
+                      <div className="mt-5 border-t border-border pt-4">
+                        {confirmDisableVendorId === vendor.id ? (
+                          <div className="rounded-md border border-destructive/20 bg-destructive/10 p-3">
+                            <p className="text-xs font-medium text-destructive">
+                              Are you sure you want to disable {vendor.shopName}? Their storefront will be hidden and account returned to buyer.
+                            </p>
+                            <div className="mt-2.5 flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                disabled={pendingVendorId !== null}
+                                onClick={() => {
+                                  setConfirmDisableVendorId(null);
+                                  void changeStatus(vendor.id, "rejected");
+                                }}
+                              >
+                                {isUpdating ? "Disabling…" : "Yes, disable vendor"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setConfirmDisableVendorId(null)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            className="w-full border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            disabled={pendingVendorId !== null}
+                            onClick={() => setConfirmDisableVendorId(vendor.id)}
+                          >
+                            Disable vendor
+                          </Button>
+                        )}
+                      </div>
+                    )}
+
+                    {vendor.approvalStatus === "rejected" && (
+                      <div className="mt-5 border-t border-border pt-4">
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          disabled={pendingVendorId !== null}
+                          onClick={() => void changeStatus(vendor.id, "approved")}
+                        >
+                          {isUpdating ? "Saving…" : "Re-activate vendor"}
+                        </Button>
+                      </div>
+                    )}
                   </article>
                 </li>
               );
