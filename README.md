@@ -108,7 +108,7 @@ A vendor role check is not an ownership check: data queries must also scope reco
 - The seed scripts do not yet create the second accounts (`buyer2@ojalink.test`, `rider2@ojalink.test`) used for cross-account access checks.
 - The PR #4 follow-ups are still open: a buyer-scope automated test, a production guard in `seed-orders.ts`, and removing the “TEMPORARY” note.
 - Feature 5 photo upload awaits the team’s storage-provider decision.
-- The live URL is https://ojalink-iota.vercel.app. The remaining team member names (Feature 1 and 9 owners) and commit links still need to be added.
+- The live URL is https://ojalink-iota.vercel.app. The Feature 1 owner name and commit link still need to be added.
 
 ## Environment variables
 
