@@ -258,7 +258,6 @@ export function AdminVendorApprovalList({ vendors }: { vendors: AdminVendor[] })
                           <p><strong>Identity:</strong> Name matches NIN & Live selfie; DOB confirmed.</p>
                           <p><strong>Business:</strong> Market stall verified at {vendor.marketName}, Benin City.</p>
                           <p><strong>Trust:</strong> Market union leader reference recorded; guarantor contacted.</p>
-                          <p><strong>NDPA 2023 Note:</strong> Zero raw NIN/BVN stored. Tokenized verification reference logged.</p>
                         </div>
                       ) : null}
                     </div>
