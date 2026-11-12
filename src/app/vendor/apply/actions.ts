@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { requireRole } from "@/lib/auth/guard";
+import { users } from "@/lib/auth/schema";
 import { getDb } from "@/lib/db";
 import { markets, vendors } from "@/lib/db/schema";
 import {
@@ -45,14 +46,19 @@ export async function submitVendorApplication(
       .where(eq(vendors.userId, auth.id))
       .limit(1);
 
-    if (existingVendor) {
+    if (existingVendor && existingVendor.approvalStatus === "pending") {
       return {
         ok: false,
         status: 409,
-        message:
-          existingVendor.approvalStatus === "pending"
-            ? "Your application is already waiting for review."
-            : "An application for this account already exists.",
+        message: "Your application is already waiting for review.",
+      };
+    }
+
+    if (existingVendor && existingVendor.approvalStatus === "approved") {
+      return {
+        ok: false,
+        status: 409,
+        message: "Your shop is already approved. Visit your vendor area to manage products.",
       };
     }
 
@@ -87,22 +93,85 @@ export async function submitVendorApplication(
       };
     }
 
-    await db.insert(vendors).values({
-      userId: auth.id,
-      marketId: market.id,
-      shopName: application.data.shopName,
-      slug: chosenSlug,
-      description: application.data.description || null,
-      approvalStatus: "pending",
-    });
+    // Process photo uploads or URLs
+    let portraitUrl = application.data.portraitUrl || null;
+    let shopImageUrl = application.data.shopImageUrl || null;
+
+    const portraitFile = formData.get("portrait");
+    if (portraitFile instanceof File && portraitFile.size > 0 && portraitFile.size <= 3 * 1024 * 1024) {
+      const buffer = Buffer.from(await portraitFile.arrayBuffer());
+      portraitUrl = `data:${portraitFile.type || "image/jpeg"};base64,${buffer.toString("base64")}`;
+    }
+
+    const shopImageFile = formData.get("shopImage");
+    if (shopImageFile instanceof File && shopImageFile.size > 0 && shopImageFile.size <= 3 * 1024 * 1024) {
+      const buffer = Buffer.from(await shopImageFile.arrayBuffer());
+      shopImageUrl = `data:${shopImageFile.type || "image/jpeg"};base64,${buffer.toString("base64")}`;
+    }
+
+    // Fall back to test assets in development if no image files were selected
+    if (!portraitUrl && process.env.NODE_ENV === "development") {
+      portraitUrl = "/test-assets/adaeze-vendor-portrait.webp";
+    }
+    if (!shopImageUrl && process.env.NODE_ENV === "development") {
+      shopImageUrl = "/test-assets/adaeze-fabric-stall.webp";
+    }
+
+    // Update user portrait and phone if provided
+    const userUpdate: { image?: string; phone?: string } = {};
+    if (portraitUrl) userUpdate.image = portraitUrl;
+    if (application.data.phone) userUpdate.phone = application.data.phone;
+    if (Object.keys(userUpdate).length > 0) {
+      await db.update(users).set(userUpdate).where(eq(users.id, auth.id));
+    }
+
+    // Append verification metadata to description if provided
+    let combinedDescription = application.data.description || "";
+    const metaParts: string[] = [];
+    if (application.data.bankName && application.data.accountNumber) {
+      metaParts.push(`Bank: ${application.data.bankName} - ${application.data.accountNumber} (${application.data.accountName || ""})`);
+    }
+    if (application.data.guarantorName && application.data.guarantorPhone) {
+      metaParts.push(`Guarantor: ${application.data.guarantorName} - ${application.data.guarantorPhone}`);
+    }
+    if (metaParts.length > 0) {
+      combinedDescription = combinedDescription
+        ? `${combinedDescription}\n\n[Verification Info]\n${metaParts.join("\n")}`
+        : `[Verification Info]\n${metaParts.join("\n")}`;
+    }
+
+    if (existingVendor) {
+      await db
+        .update(vendors)
+        .set({
+          marketId: market.id,
+          shopName: application.data.shopName,
+          slug: chosenSlug,
+          description: combinedDescription || null,
+          shopImageUrl: shopImageUrl || null,
+          approvalStatus: "pending",
+        })
+        .where(eq(vendors.id, existingVendor.id));
+    } else {
+      await db.insert(vendors).values({
+        userId: auth.id,
+        marketId: market.id,
+        shopName: application.data.shopName,
+        slug: chosenSlug,
+        description: combinedDescription || null,
+        shopImageUrl: shopImageUrl || null,
+        approvalStatus: "pending",
+      });
+    }
 
     revalidatePath("/admin/vendors");
     revalidatePath("/vendor/apply");
+    revalidatePath("/buyer");
 
     return {
       ok: true,
       message:
-        "Application received. An admin will review your shop and you will get vendor access once approved.",
+        "Application received. Your verification documents have been submitted and an admin will review your shop.",
     };
   } catch {
     return {

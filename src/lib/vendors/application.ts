@@ -10,6 +10,15 @@ export type VendorApplicationInput = {
   shopName: string;
   description: string;
   marketSlug: string;
+  phone?: string;
+  nin?: string;
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+  guarantorName?: string;
+  guarantorPhone?: string;
+  portraitUrl?: string;
+  shopImageUrl?: string;
 };
 
 export type VendorApplicationResult =
@@ -74,7 +83,33 @@ export function validateVendorApplication(formData: FormData): VendorApplication
     return { success: false };
   }
 
-  return { success: true, data: { shopName, description, marketSlug } };
+  const rawPhone = formData.get("phone");
+  const rawNin = formData.get("nin");
+  const rawBankName = formData.get("bankName");
+  const rawAccountNumber = formData.get("accountNumber");
+  const rawAccountName = formData.get("accountName");
+  const rawGuarantorName = formData.get("guarantorName");
+  const rawGuarantorPhone = formData.get("guarantorPhone");
+  const rawPortraitUrl = formData.get("portraitUrl");
+  const rawShopImageUrl = formData.get("shopImageUrl");
+
+  return {
+    success: true,
+    data: {
+      shopName,
+      description,
+      marketSlug,
+      phone: typeof rawPhone === "string" ? rawPhone.trim() : undefined,
+      nin: typeof rawNin === "string" ? rawNin.trim() : undefined,
+      bankName: typeof rawBankName === "string" ? rawBankName.trim() : undefined,
+      accountNumber: typeof rawAccountNumber === "string" ? rawAccountNumber.trim() : undefined,
+      accountName: typeof rawAccountName === "string" ? rawAccountName.trim() : undefined,
+      guarantorName: typeof rawGuarantorName === "string" ? rawGuarantorName.trim() : undefined,
+      guarantorPhone: typeof rawGuarantorPhone === "string" ? rawGuarantorPhone.trim() : undefined,
+      portraitUrl: typeof rawPortraitUrl === "string" ? rawPortraitUrl.trim() : undefined,
+      shopImageUrl: typeof rawShopImageUrl === "string" ? rawShopImageUrl.trim() : undefined,
+    },
+  };
 }
 
 export function isVendorApplicationUuid(value: unknown): value is string {

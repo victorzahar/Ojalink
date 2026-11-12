@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { eq } from "drizzle-orm";
 
 import { LogoutButton } from "@/components/auth/logout-button";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,8 @@ import {
 } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/guard";
 import { getBuyerCart } from "@/lib/cart/queries";
+import { getDb } from "@/lib/db";
+import { roleRequests, vendors } from "@/lib/db/schema";
 import { formatNaira } from "@/lib/orders/format";
 
 // This page reads the session, cart and orders state on every request. Block
@@ -25,9 +28,22 @@ export const metadata: Metadata = {
 
 export default async function BuyerPage() {
   const user = await requireRole("buyer");
+  const db = getDb();
   const cart = await getBuyerCart(user.id);
 
   const cartItemCount = cart.items.reduce((total, item) => total + item.quantity, 0);
+
+  const [vendorApplication] = await db
+    .select({ approvalStatus: vendors.approvalStatus })
+    .from(vendors)
+    .where(eq(vendors.userId, user.id))
+    .limit(1);
+
+  const [riderApplication] = await db
+    .select({ status: roleRequests.status })
+    .from(roleRequests)
+    .where(eq(roleRequests.userId, user.id))
+    .limit(1);
 
   const quickLinks = [
     {
@@ -83,13 +99,79 @@ export default async function BuyerPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          {vendorApplication ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 p-3 text-sm">
+              <div>
+                <span className="font-medium text-foreground">Vendor Application Status: </span>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                  vendorApplication.approvalStatus === "approved"
+                    ? "bg-green-100 text-green-900"
+                    : vendorApplication.approvalStatus === "rejected"
+                    ? "bg-red-100 text-red-900"
+                    : "bg-amber-100 text-amber-900"
+                }`}>
+                  {vendorApplication.approvalStatus === "approved"
+                    ? "Approved"
+                    : vendorApplication.approvalStatus === "rejected"
+                    ? "Rejected / Not approved"
+                    : "Under review"}
+                </span>
+              </div>
+              <Button asChild size="sm" variant={vendorApplication.approvalStatus === "rejected" ? "default" : "outline"}>
+                <Link href={vendorApplication.approvalStatus === "rejected" ? "/vendor/apply?reapply=true" : "/vendor/apply"}>
+                  {vendorApplication.approvalStatus === "rejected" ? "Update documents & apply again" : "View status"}
+                </Link>
+              </Button>
+            </div>
+          ) : null}
+
+          {riderApplication ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 p-3 text-sm">
+              <div>
+                <span className="font-medium text-foreground">Rider Application Status: </span>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                  riderApplication.status === "approved"
+                    ? "bg-green-100 text-green-900"
+                    : riderApplication.status === "rejected"
+                    ? "bg-red-100 text-red-900"
+                    : "bg-amber-100 text-amber-900"
+                }`}>
+                  {riderApplication.status === "approved"
+                    ? "Approved"
+                    : riderApplication.status === "rejected"
+                    ? "Rejected / Not approved"
+                    : "Under review"}
+                </span>
+              </div>
+              <Button asChild size="sm" variant={riderApplication.status === "rejected" ? "default" : "outline"}>
+                <Link href={
+                  riderApplication.status === "rejected"
+                    ? "/rider/apply?reapply=true"
+                    : riderApplication.status === "approved"
+                    ? "/rider"
+                    : "/rider/apply"
+                }>
+                  {riderApplication.status === "rejected"
+                    ? "Update documents & apply again"
+                    : riderApplication.status === "approved"
+                    ? "Go to rider area"
+                    : "View rider status"}
+                </Link>
+              </Button>
+            </div>
+          ) : null}
+
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Button asChild variant="outline" className="w-full sm:w-auto">
-              <Link href="/vendor/apply">Become a vendor</Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full sm:w-auto">
-              <Link href="/rider/apply">Become a rider</Link>
-            </Button>
+            {!vendorApplication && (
+              <Button asChild variant="outline" className="w-full sm:w-auto">
+                <Link href="/vendor/apply">Become a vendor</Link>
+              </Button>
+            )}
+            {!riderApplication && (
+              <Button asChild variant="outline" className="w-full sm:w-auto">
+                <Link href="/rider/apply">Become a rider</Link>
+              </Button>
+            )}
           </div>
           <LogoutButton className="w-full sm:w-auto" />
         </CardContent>

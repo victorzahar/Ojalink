@@ -20,12 +20,14 @@ export default async function AdminRidersPage() {
   const requestRows = await getDb()
     .select({
       id: roleRequests.id,
+      userId: roleRequests.userId,
       status: roleRequests.status,
       note: roleRequests.note,
       createdAt: roleRequests.createdAt,
       applicantName: users.name,
       applicantEmail: users.email,
       phone: users.phone,
+      applicantImage: users.image,
     })
     .from(roleRequests)
     .innerJoin(users, eq(roleRequests.userId, users.id))
@@ -40,7 +42,7 @@ export default async function AdminRidersPage() {
   return (
     <AdminPageShell
       title="Rider requests"
-      description="Review buyer applications to deliver orders on OjaLink."
+      description="Review buyer applications to deliver orders on OjaLink, including guarantor letter, vehicle details, and signature checks."
     >
       <AdminRiderRequestList requests={orderedRequests} />
     </AdminPageShell>
