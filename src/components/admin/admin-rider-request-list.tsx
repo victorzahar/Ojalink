@@ -1,9 +1,15 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { logAdminGuarantorInspection, updateRiderRequestStatus } from "@/app/admin/riders/actions";
+import {
+  disableRider,
+  logAdminGuarantorInspection,
+  reactivateRider,
+  updateRiderRequestStatus,
+} from "@/app/admin/riders/actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { maskBankAccount, maskIdNumber } from "@/lib/verification/types";
 
 type RequestStatus = "pending" | "approved" | "rejected";
 type RequestFilter = "all" | RequestStatus;
@@ -25,6 +32,7 @@ export type AdminRiderRequest = {
   applicantName: string;
   applicantEmail: string;
   phone: string | null;
+  applicantImage?: string | null;
 };
 
 type Feedback = { ok: boolean; message: string };
@@ -32,7 +40,7 @@ type Feedback = { ok: boolean; message: string };
 const statusLabels: Record<RequestStatus, string> = {
   pending: "Pending",
   approved: "Approved",
-  rejected: "Rejected",
+  rejected: "Disabled / Rejected",
 };
 
 const statusStyles: Record<RequestStatus, string> = {
@@ -48,6 +56,43 @@ function formatSubmissionDate(date: Date) {
   }).format(date);
 }
 
+type ParsedRiderMeta = {
+  vehicle?: string;
+  nin?: string;
+  emergency?: string;
+  bank?: string;
+  guarantor?: string;
+  availability?: string;
+  rawNote?: string;
+};
+
+function parseRiderNote(note: string | null): ParsedRiderMeta {
+  if (!note) return {};
+  const lines = note.split("\n");
+  const meta: ParsedRiderMeta = {};
+
+  for (const line of lines) {
+    if (line.startsWith("Vehicle:")) {
+      meta.vehicle = line.replace("Vehicle:", "").trim();
+    } else if (line.startsWith("NIN:")) {
+      meta.nin = line.replace("NIN:", "").trim();
+    } else if (line.startsWith("Emergency Contact:")) {
+      meta.emergency = line.replace("Emergency Contact:", "").trim();
+    } else if (line.startsWith("Bank:")) {
+      meta.bank = line.replace("Bank:", "").trim();
+    } else if (line.startsWith("Guarantor:")) {
+      meta.guarantor = line.replace("Guarantor:", "").trim();
+    } else if (line.startsWith("Availability:")) {
+      meta.availability = line.replace("Availability:", "").trim();
+    } else {
+      if (!meta.rawNote) meta.rawNote = line;
+      else meta.rawNote += `\n${line}`;
+    }
+  }
+
+  return meta;
+}
+
 export function AdminRiderRequestList({ requests }: { requests: AdminRiderRequest[] }) {
   const router = useRouter();
   const [filter, setFilter] = useState<RequestFilter>("all");
@@ -56,6 +101,7 @@ export function AdminRiderRequestList({ requests }: { requests: AdminRiderReques
   // Track per-request guarantor verification confirmation by the reviewing admin
   const [verifiedGuarantors, setVerifiedGuarantors] = useState<Record<string, boolean>>({});
   const [viewingDocRequestId, setViewingDocRequestId] = useState<string | null>(null);
+  const [confirmingDisableId, setConfirmingDisableId] = useState<string | null>(null);
 
   const filteredRequests =
     filter === "all"
@@ -104,6 +150,65 @@ export function AdminRiderRequestList({ requests }: { requests: AdminRiderReques
     }
   }
 
+  async function handleDisable(requestId: string, targetUserId: string) {
+    setPendingRequestId(requestId);
+    setFeedback((current) => {
+      const next = { ...current };
+      delete next[requestId];
+      return next;
+    });
+
+    try {
+      const result = await disableRider(requestId, targetUserId);
+      setFeedback((current) => ({
+        ...current,
+        [requestId]: { ok: result.ok, message: result.message },
+      }));
+      if (result.ok) {
+        setConfirmingDisableId(null);
+        router.refresh();
+      }
+    } catch {
+      setFeedback((current) => ({
+        ...current,
+        [requestId]: {
+          ok: false,
+          message: "Could not disable rider. Check your connection and try again.",
+        },
+      }));
+    } finally {
+      setPendingRequestId(null);
+    }
+  }
+
+  async function handleReactivate(requestId: string, targetUserId: string) {
+    setPendingRequestId(requestId);
+    setFeedback((current) => {
+      const next = { ...current };
+      delete next[requestId];
+      return next;
+    });
+
+    try {
+      const result = await reactivateRider(requestId, targetUserId);
+      setFeedback((current) => ({
+        ...current,
+        [requestId]: { ok: result.ok, message: result.message },
+      }));
+      if (result.ok) router.refresh();
+    } catch {
+      setFeedback((current) => ({
+        ...current,
+        [requestId]: {
+          ok: false,
+          message: "Could not re-activate rider. Check your connection and try again.",
+        },
+      }));
+    } finally {
+      setPendingRequestId(null);
+    }
+  }
+
   const requestCount = filteredRequests.length;
 
   return (
@@ -129,7 +234,7 @@ export function AdminRiderRequestList({ requests }: { requests: AdminRiderReques
             <option value="all">All statuses</option>
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
+            <option value="rejected">Disabled / Rejected</option>
           </select>
         </div>
       </CardHeader>
@@ -147,29 +252,83 @@ export function AdminRiderRequestList({ requests }: { requests: AdminRiderReques
               const requestFeedback = feedback[request.id];
               const isGuarantorVerified = !!verifiedGuarantors[request.id];
               const isDocOpen = viewingDocRequestId === request.id;
+              const isConfirmingDisable = confirmingDisableId === request.id;
+              const meta = parseRiderNote(request.note);
 
               return (
                 <li key={request.id}>
                   <article className="h-full rounded-lg border border-border bg-background p-4 sm:p-5">
+                    {/* Header: Rider avatar, name, email & status badge */}
                     <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h3 className="break-words font-heading text-lg font-semibold text-foreground">
-                          {request.applicantName}
-                        </h3>
-                        <p className="mt-1 break-all text-sm text-muted-foreground">
-                          {request.applicantEmail}
-                        </p>
+                      <div className="flex items-center gap-3 min-w-0">
+                        {request.applicantImage ? (
+                          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-border shadow-sm">
+                            <Image
+                              src={request.applicantImage}
+                              alt={request.applicantName}
+                              fill
+                              unoptimized={request.applicantImage.startsWith("data:")}
+                              className="object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-bold text-primary">
+                            {request.applicantName.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <h3 className="break-words font-heading text-lg font-semibold text-foreground">
+                            {request.applicantName}
+                          </h3>
+                          <p className="break-all text-xs text-muted-foreground">
+                            {request.applicantEmail}
+                          </p>
+                        </div>
                       </div>
-                      <span className={`rounded-full px-3 py-1 text-sm font-medium ${statusStyles[request.status]}`}>
+                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[request.status]}`}>
                         {statusLabels[request.status]}
                       </span>
                     </div>
 
-                    {request.note ? (
-                      <p className="mt-4 text-base leading-6 text-muted-foreground">
-                        {request.note}
-                      </p>
+                    {/* Vehicle & Logistics Badges */}
+                    {meta.vehicle ? (
+                      <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
+                        <span className="rounded-md bg-sky-50 px-2 py-0.5 font-medium text-sky-800 border border-sky-200">
+                          🏍️ {meta.vehicle}
+                        </span>
+                      </div>
                     ) : null}
+
+                    {/* Verification Details: NIN & Bank Info (Masked) */}
+                    {(meta.nin || meta.bank || meta.emergency) && (
+                      <div className="mt-3 rounded-md bg-muted/30 p-2.5 text-xs space-y-1">
+                        {meta.nin && (
+                          <p className="text-muted-foreground">
+                            <span className="font-medium text-foreground">NIN:</span> {maskIdNumber(meta.nin)}
+                          </p>
+                        )}
+                        {meta.emergency && (
+                          <p className="text-muted-foreground">
+                            <span className="font-medium text-foreground">Emergency Contact:</span> {meta.emergency}
+                          </p>
+                        )}
+                        {meta.bank && (
+                          <p className="text-muted-foreground">
+                            <span className="font-medium text-foreground">Payout Bank:</span>{" "}
+                            {meta.bank.includes("-")
+                              ? `${meta.bank.split("-")[0].trim()} - ${maskBankAccount(meta.bank.split("-")[1].trim())}`
+                              : meta.bank}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Availability / Note */}
+                    {(meta.availability || meta.rawNote) && (
+                      <p className="mt-3 text-xs leading-5 text-muted-foreground italic">
+                        &ldquo;{meta.availability || meta.rawNote}&rdquo;
+                      </p>
+                    )}
 
                     {/* Nigeria Verification Checklist: Rider Guarantor Letter & Signature Section */}
                     <div className="mt-4 rounded-md border border-border bg-muted/40 p-3">
@@ -205,26 +364,32 @@ export function AdminRiderRequestList({ requests }: { requests: AdminRiderReques
                       </div>
 
                       {isDocOpen ? (
-                        <div className="mt-3 rounded border border-border bg-background p-2.5 text-xs text-muted-foreground">
+                        <div className="mt-3 rounded border border-border bg-background p-2.5 text-xs text-muted-foreground space-y-1">
                           <p className="font-semibold text-foreground">Guarantor Document Record (NDPA Logged):</p>
-                          <p className="mt-1">Letter Reference: <code>GL-NG-BENIN-{request.id.slice(0, 6)}</code></p>
-                          <p>Signatory: Verified Nigerian adult guarantor resident in Benin City.</p>
-                          <p>Phone confirmation: Contact confirmed reachable.</p>
-                          <p className="mt-1 text-[11px] italic text-sky-700">Admin document view audit event recorded.</p>
+                          <p>Letter Reference: <code>GL-NG-BENIN-{request.id.slice(0, 6)}</code></p>
+                          {meta.guarantor ? (
+                            <p className="text-foreground font-medium">Details: {meta.guarantor}</p>
+                          ) : (
+                            <>
+                              <p>Signatory: Verified Nigerian adult guarantor resident in Benin City.</p>
+                              <p>Phone confirmation: Contact confirmed reachable.</p>
+                            </>
+                          )}
+                          <p className="pt-1 text-[11px] italic text-sky-700">Admin document view audit event recorded.</p>
                         </div>
                       ) : null}
                     </div>
 
-                    <dl className="mt-4 grid gap-3 border-t border-border pt-4 text-base sm:grid-cols-2">
+                    <dl className="mt-4 grid gap-3 border-t border-border pt-4 text-xs sm:grid-cols-2">
                       <div className="min-w-0">
-                        <dt className="text-sm text-muted-foreground">Contact Phone</dt>
-                        <dd className="mt-1 break-all font-medium text-foreground">
+                        <dt className="text-muted-foreground">Contact Phone</dt>
+                        <dd className="mt-0.5 break-all font-medium text-foreground">
                           {request.phone || "Not provided"}
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-sm text-muted-foreground">Applied</dt>
-                        <dd className="mt-1 font-medium text-foreground">
+                        <dt className="text-muted-foreground">Applied</dt>
+                        <dd className="mt-0.5 font-medium text-foreground">
                           <time dateTime={request.createdAt.toISOString()}>
                             {formatSubmissionDate(request.createdAt)}
                           </time>
@@ -234,10 +399,10 @@ export function AdminRiderRequestList({ requests }: { requests: AdminRiderReques
 
                     {requestFeedback ? (
                       <p
-                        className={`mt-4 rounded-md px-3 py-2 text-base ${
+                        className={`mt-4 rounded-md px-3 py-2 text-xs ${
                           requestFeedback.ok
-                            ? "bg-green-50 text-green-900"
-                            : "bg-red-50 text-red-900"
+                            ? "bg-green-50 text-green-900 border border-green-200"
+                            : "bg-red-50 text-red-900 border border-red-200"
                         }`}
                         role={requestFeedback.ok ? "status" : "alert"}
                       >
@@ -245,8 +410,9 @@ export function AdminRiderRequestList({ requests }: { requests: AdminRiderReques
                       </p>
                     ) : null}
 
+                    {/* Pending Actions */}
                     {request.status === "pending" ? (
-                      <div className="mt-5 space-y-2 border-t border-border pt-4">
+                      <div className="mt-4 space-y-2 border-t border-border pt-3">
                         {!isGuarantorVerified ? (
                           <p className="text-xs text-amber-800 bg-amber-50 rounded px-2.5 py-1.5 border border-amber-200">
                             Check the box above to verify the guarantor letter / signature before approving.
@@ -269,6 +435,64 @@ export function AdminRiderRequestList({ requests }: { requests: AdminRiderReques
                             {isUpdating ? "Saving…" : "Reject"}
                           </Button>
                         </div>
+                      </div>
+                    ) : null}
+
+                    {/* Approved Actions: Disable Rider Button */}
+                    {request.status === "approved" ? (
+                      <div className="mt-4 border-t border-border pt-3">
+                        {isConfirmingDisable ? (
+                          <div className="space-y-2 rounded-md border border-destructive/30 bg-destructive/5 p-3">
+                            <p className="text-xs font-semibold text-destructive">
+                              Confirm Disable Rider
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              This will immediately revoke their delivery privileges and switch their account role back to buyer. They can be re-activated later.
+                            </p>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                disabled={pendingRequestId !== null}
+                                onClick={() => void handleDisable(request.id, request.userId)}
+                              >
+                                {isUpdating ? "Disabling…" : "Yes, disable rider"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setConfirmingDisableId(null)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="w-full"
+                            disabled={pendingRequestId !== null}
+                            onClick={() => setConfirmingDisableId(request.id)}
+                          >
+                            Disable rider
+                          </Button>
+                        )}
+                      </div>
+                    ) : null}
+
+                    {/* Rejected / Disabled Actions: Re-activate Rider Button */}
+                    {request.status === "rejected" ? (
+                      <div className="mt-4 border-t border-border pt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full text-green-700 hover:text-green-800 border-green-300 hover:bg-green-50"
+                          disabled={pendingRequestId !== null}
+                          onClick={() => void handleReactivate(request.id, request.userId)}
+                        >
+                          {isUpdating ? "Re-activating…" : "Re-activate rider"}
+                        </Button>
                       </div>
                     ) : null}
                   </article>

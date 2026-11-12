@@ -139,12 +139,24 @@ export default async function BuyerPage() {
                   {riderApplication.status === "approved"
                     ? "Approved"
                     : riderApplication.status === "rejected"
-                    ? "Rejected"
+                    ? "Rejected / Not approved"
                     : "Under review"}
                 </span>
               </div>
-              <Button asChild size="sm" variant="outline">
-                <Link href="/rider/apply">View rider status</Link>
+              <Button asChild size="sm" variant={riderApplication.status === "rejected" ? "default" : "outline"}>
+                <Link href={
+                  riderApplication.status === "rejected"
+                    ? "/rider/apply?reapply=true"
+                    : riderApplication.status === "approved"
+                    ? "/rider"
+                    : "/rider/apply"
+                }>
+                  {riderApplication.status === "rejected"
+                    ? "Update documents & apply again"
+                    : riderApplication.status === "approved"
+                    ? "Go to rider area"
+                    : "View rider status"}
+                </Link>
               </Button>
             </div>
           ) : null}

@@ -27,6 +27,7 @@ export default async function AdminRidersPage() {
       applicantName: users.name,
       applicantEmail: users.email,
       phone: users.phone,
+      applicantImage: users.image,
     })
     .from(roleRequests)
     .innerJoin(users, eq(roleRequests.userId, users.id))
@@ -41,7 +42,7 @@ export default async function AdminRidersPage() {
   return (
     <AdminPageShell
       title="Rider requests"
-      description="Review buyer applications to deliver orders on OjaLink, including guarantor letter and signature checks."
+      description="Review buyer applications to deliver orders on OjaLink, including guarantor letter, vehicle details, and signature checks."
     >
       <AdminRiderRequestList requests={orderedRequests} />
     </AdminPageShell>

@@ -7,7 +7,17 @@ import {
 export type AuditLogEntry = {
   adminId: string;
   targetUserId: string;
-  action: "view_photos" | "view_guarantor_letter" | "verify_guarantor" | "approve_rider" | "approve_vendor" | "suspend_account";
+  action:
+    | "view_photos"
+    | "view_guarantor_letter"
+    | "verify_guarantor"
+    | "approve_rider"
+    | "approve_vendor"
+    | "suspend_account"
+    | "disable_vendor"
+    | "reactivate_vendor"
+    | "disable_rider"
+    | "reactivate_rider";
   details?: string;
   timestamp: Date;
 };

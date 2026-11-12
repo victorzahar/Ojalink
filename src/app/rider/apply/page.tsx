@@ -23,28 +23,47 @@ async function applicationStatusCard(status: "pending" | "approved" | "rejected"
   const copy = {
     pending: {
       title: "Application under review",
-      body: "Your rider application is waiting for an admin to review it. You will get rider access once it is approved.",
+      body: "Your rider application and guarantor details are waiting for an admin to review them. You will get rider access once approved.",
     },
     approved: {
       title: "Application approved",
-      body: "You are approved to deliver. Head to your rider area to pick up jobs.",
+      body: "You are approved to deliver on OjaLink. Head to your rider area to pick up delivery jobs.",
     },
     rejected: {
       title: "Application not approved",
-      body: "An admin reviewed your application and did not approve it. Contact an admin if you think this is a mistake.",
+      body: "An admin reviewed your application and did not approve it. You can review your vehicle, guarantor, and identity credentials and apply again.",
     },
   }[status];
 
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-4">
-        <p className="text-base font-medium text-foreground">{copy.title}</p>
+        <div className="flex items-center gap-2">
+          <span
+            className={`inline-block h-2.5 w-2.5 rounded-full ${
+              status === "approved"
+                ? "bg-green-600"
+                : status === "rejected"
+                ? "bg-red-600"
+                : "bg-amber-600"
+            }`}
+          />
+          <p className="text-base font-semibold text-foreground">{copy.title}</p>
+        </div>
         <p className="text-sm text-muted-foreground">{copy.body}</p>
+
         {status === "approved" && (
           <Button asChild className="w-full">
             <Link href="/rider">Go to rider area</Link>
           </Button>
         )}
+
+        {status === "rejected" && (
+          <Button asChild className="w-full">
+            <Link href="/rider/apply?reapply=true">Update documents and apply again</Link>
+          </Button>
+        )}
+
         <Button asChild variant="outline" className="w-full">
           <Link href="/marketplace">Back to marketplace</Link>
         </Button>
@@ -54,7 +73,12 @@ async function applicationStatusCard(status: "pending" | "approved" | "rejected"
   );
 }
 
-export default async function RiderApplyPage() {
+export default async function RiderApplyPage(props: {
+  searchParams?: Promise<{ reapply?: string }>;
+}) {
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  const isReapplying = searchParams.reapply === "true";
+
   const user = await requireRole("buyer");
   const db = getDb();
 
@@ -82,7 +106,7 @@ export default async function RiderApplyPage() {
     .where(eq(roleRequests.userId, user.id))
     .limit(1);
 
-  if (existingRequest) {
+  if (existingRequest && (!isReapplying || existingRequest.status !== "rejected")) {
     return (
       <main className="mx-auto flex min-h-svh w-full max-w-md flex-col justify-center gap-6 px-4 py-8">
         {await applicationStatusCard(existingRequest.status)}
@@ -101,7 +125,7 @@ export default async function RiderApplyPage() {
           Applying as {user.email}
         </p>
       </div>
-      <RiderApplyForm contactPhone={user.phone || "Not provided"} />
+      <RiderApplyForm contactPhone={user.phone || ""} isReapply={isReapplying} />
     </main>
   );
 }

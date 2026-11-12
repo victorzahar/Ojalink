@@ -111,6 +111,8 @@ export async function updateRiderRequestStatus(
 
     revalidatePath("/admin/riders");
     revalidatePath("/rider/apply");
+    revalidatePath("/rider");
+    revalidatePath("/buyer");
 
     return {
       ok: true,
@@ -123,6 +125,147 @@ export async function updateRiderRequestStatus(
     return {
       ok: false,
       message: "Could not update this request. Please try again.",
+    };
+  }
+}
+
+/**
+ * Disable an active rider (e.g. rider left platform, inactive, or suspended).
+ * Revokes the rider role back to buyer and logs an NDPA audit event.
+ */
+export async function disableRider(
+  requestId: unknown,
+  targetUserId: unknown,
+): Promise<UpdateRiderRequestResult> {
+  const auth = await requireRole({ api: true }, "admin");
+  if (auth instanceof Response) {
+    const body = (await auth.json()) as { error?: string };
+    return {
+      ok: false,
+      status: auth.status,
+      message: body.error ?? "You do not have access.",
+    };
+  }
+
+  if (typeof requestId !== "string" || !uuidPattern.test(requestId)) {
+    return { ok: false, message: "That request could not be found." };
+  }
+
+  if (typeof targetUserId !== "string" || !uuidPattern.test(targetUserId)) {
+    return { ok: false, message: "Invalid user ID." };
+  }
+
+  try {
+    const db = getDb();
+
+    // 1. Update role_requests status to rejected
+    const [updated] = await db
+      .update(roleRequests)
+      .set({ status: "rejected", resolvedBy: auth.id })
+      .where(and(eq(roleRequests.id, requestId), eq(roleRequests.requestedRole, "rider")))
+      .returning({ id: roleRequests.id });
+
+    if (!updated) {
+      return { ok: false, message: "Could not find that rider request." };
+    }
+
+    // 2. Revoke rider role back to buyer
+    await setUserRoleAsAdmin({
+      actorId: auth.id,
+      userId: targetUserId,
+      role: "buyer",
+    });
+
+    // 3. Record NDPA compliance audit event
+    recordVerificationAuditLog(
+      auth.id,
+      targetUserId,
+      "disable_rider",
+      `Admin disabled rider request ${requestId} and revoked delivery privileges`,
+    );
+
+    revalidatePath("/admin/riders");
+    revalidatePath("/rider");
+    revalidatePath("/buyer");
+
+    return {
+      ok: true,
+      message: "Rider disabled. Delivery privileges have been revoked and role reset to buyer.",
+    };
+  } catch {
+    return {
+      ok: false,
+      message: "Could not disable this rider. Please try again.",
+    };
+  }
+}
+
+/**
+ * Re-activate a disabled or rejected rider who has returned to the platform.
+ */
+export async function reactivateRider(
+  requestId: unknown,
+  targetUserId: unknown,
+): Promise<UpdateRiderRequestResult> {
+  const auth = await requireRole({ api: true }, "admin");
+  if (auth instanceof Response) {
+    const body = (await auth.json()) as { error?: string };
+    return {
+      ok: false,
+      status: auth.status,
+      message: body.error ?? "You do not have access.",
+    };
+  }
+
+  if (typeof requestId !== "string" || !uuidPattern.test(requestId)) {
+    return { ok: false, message: "That request could not be found." };
+  }
+
+  if (typeof targetUserId !== "string" || !uuidPattern.test(targetUserId)) {
+    return { ok: false, message: "Invalid user ID." };
+  }
+
+  try {
+    const db = getDb();
+
+    // 1. Update role_requests status to approved
+    const [updated] = await db
+      .update(roleRequests)
+      .set({ status: "approved", resolvedBy: auth.id })
+      .where(and(eq(roleRequests.id, requestId), eq(roleRequests.requestedRole, "rider")))
+      .returning({ id: roleRequests.id });
+
+    if (!updated) {
+      return { ok: false, message: "Could not find that rider request." };
+    }
+
+    // 2. Restore rider role
+    await setUserRoleAsAdmin({
+      actorId: auth.id,
+      userId: targetUserId,
+      role: "rider",
+    });
+
+    // 3. Record audit event
+    recordVerificationAuditLog(
+      auth.id,
+      targetUserId,
+      "reactivate_rider",
+      `Admin re-activated rider request ${requestId} and restored delivery access`,
+    );
+
+    revalidatePath("/admin/riders");
+    revalidatePath("/rider");
+    revalidatePath("/buyer");
+
+    return {
+      ok: true,
+      message: "Rider re-activated. Delivery privileges and rider access have been restored.",
+    };
+  } catch {
+    return {
+      ok: false,
+      message: "Could not re-activate this rider. Please try again.",
     };
   }
 }
