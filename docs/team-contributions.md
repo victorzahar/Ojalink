@@ -12,7 +12,7 @@ This roster combines the team assignment screenshot with the ownership details r
 | Egbon Aisosa | 6 — Vendor orders and payouts (merged on main) | QA test lead | [PR #9](https://github.com/victorzahar/Ojalink/pull/9) — merged |
 | Iyen Monica | 7 — Rider app (merged on main) | Accessibility & mobile reviewer | [PR #11](https://github.com/victorzahar/Ojalink/pull/11) — merged |
 | Ajari Obed | 8 — Admin and disputes (merged on main) | Security & access tester | [PR #8](https://github.com/victorzahar/Ojalink/pull/8) — merged; label fix in PR #13 |
-| To confirm | 9 — Notifications and automations | Docs & README | Add link |
+| Edegbe Esohe Favour | 9 - Notifications and automations (assigned) | Client & research lead | Build in progress - link will be added when the PR opens |
 | Zahar | 10 - Accounts, roles and security | Pitch & demo lead | [PR #2](https://github.com/victorzahar/Ojalink/pull/2); role management and vendor/rider applications [PR #25](https://github.com/victorzahar/Ojalink/pull/25), signup role choice [PR #27](https://github.com/victorzahar/Ojalink/pull/27); screenshots in [docs/screenshots](screenshots/) |
 
 ## Feature notes received
