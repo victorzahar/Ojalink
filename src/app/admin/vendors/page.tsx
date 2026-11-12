@@ -51,13 +51,8 @@ export default async function AdminVendorsPage() {
     const isLocalPreview = showLocalPreview && vendor.slug === "adaeze-fabrics";
     return {
       ...vendor,
-      ...(isLocalPreview
-        ? {
-            approvalStatus: "pending" as const,
-            portraitUrl: portraitPath,
-            shopImageUrl: shopPhotoPath,
-          }
-        : {}),
+      portraitUrl: vendor.portraitUrl || (isLocalPreview ? portraitPath : null),
+      shopImageUrl: vendor.shopImageUrl || (isLocalPreview ? shopPhotoPath : null),
       isLocalPreview,
     };
   });

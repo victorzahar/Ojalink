@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { requireRole } from "@/lib/auth/guard";
@@ -44,34 +44,36 @@ export async function updateVendorApprovalStatus(
     const [updatedVendor] = await getDb()
       .update(vendors)
       .set({ approvalStatus: newStatus })
-      .where(
-        and(
-          eq(vendors.id, vendorId),
-          eq(vendors.approvalStatus, "pending"),
-        ),
-      )
+      .where(eq(vendors.id, vendorId))
       .returning({ id: vendors.id, userId: vendors.userId });
 
     if (!updatedVendor) {
       return {
         ok: false,
-        status: 409,
-        message: "This vendor is no longer waiting for review. Refresh the page and try again.",
+        status: 404,
+        message: "This vendor could not be found. Refresh the page and try again.",
       };
     }
 
-    // Approving a shop also grants its owner vendor access. Rejected
-    // applications leave the applicant as a buyer.
+    // Approving a shop grants its owner vendor access. Rejected
+    // applications leave or return the applicant to a buyer.
     if (newStatus === "approved") {
       await setUserRoleAsAdmin({
         actorId: auth.id,
         userId: updatedVendor.userId,
         role: "vendor",
       });
+    } else if (newStatus === "rejected") {
+      await setUserRoleAsAdmin({
+        actorId: auth.id,
+        userId: updatedVendor.userId,
+        role: "buyer",
+      });
     }
 
     revalidatePath("/admin/vendors");
     revalidatePath("/vendor/apply");
+    revalidatePath("/buyer");
     return {
       ok: true,
       message:

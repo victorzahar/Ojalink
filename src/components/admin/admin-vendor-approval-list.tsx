@@ -74,21 +74,6 @@ export function AdminVendorApprovalList({ vendors }: { vendors: AdminVendor[] })
       return next;
     });
 
-    const targetVendor = vendors.find((item) => item.id === vendorId);
-    if (targetVendor?.isLocalPreview) {
-      setTimeout(() => {
-        setPendingVendorId(null);
-        setFeedback((current) => ({
-          ...current,
-          [vendorId]: {
-            ok: true,
-            message: `Simulated local approval (${status}) for Adaeze Fabrics. Live database remains pending.`,
-          },
-        }));
-      }, 350);
-      return;
-    }
-
     try {
       const result = await updateVendorApprovalStatus(vendorId, status);
       setFeedback((current) => ({

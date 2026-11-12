@@ -46,14 +46,19 @@ export async function submitVendorApplication(
       .where(eq(vendors.userId, auth.id))
       .limit(1);
 
-    if (existingVendor) {
+    if (existingVendor && existingVendor.approvalStatus === "pending") {
       return {
         ok: false,
         status: 409,
-        message:
-          existingVendor.approvalStatus === "pending"
-            ? "Your application is already waiting for review."
-            : "An application for this account already exists.",
+        message: "Your application is already waiting for review.",
+      };
+    }
+
+    if (existingVendor && existingVendor.approvalStatus === "approved") {
+      return {
+        ok: false,
+        status: 409,
+        message: "Your shop is already approved. Visit your vendor area to manage products.",
       };
     }
 
@@ -135,18 +140,33 @@ export async function submitVendorApplication(
         : `[Verification Info]\n${metaParts.join("\n")}`;
     }
 
-    await db.insert(vendors).values({
-      userId: auth.id,
-      marketId: market.id,
-      shopName: application.data.shopName,
-      slug: chosenSlug,
-      description: combinedDescription || null,
-      shopImageUrl: shopImageUrl || null,
-      approvalStatus: "pending",
-    });
+    if (existingVendor) {
+      await db
+        .update(vendors)
+        .set({
+          marketId: market.id,
+          shopName: application.data.shopName,
+          slug: chosenSlug,
+          description: combinedDescription || null,
+          shopImageUrl: shopImageUrl || null,
+          approvalStatus: "pending",
+        })
+        .where(eq(vendors.id, existingVendor.id));
+    } else {
+      await db.insert(vendors).values({
+        userId: auth.id,
+        marketId: market.id,
+        shopName: application.data.shopName,
+        slug: chosenSlug,
+        description: combinedDescription || null,
+        shopImageUrl: shopImageUrl || null,
+        approvalStatus: "pending",
+      });
+    }
 
     revalidatePath("/admin/vendors");
     revalidatePath("/vendor/apply");
+    revalidatePath("/buyer");
 
     return {
       ok: true,
