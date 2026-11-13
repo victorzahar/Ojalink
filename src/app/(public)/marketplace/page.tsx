@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Store, X, ArrowLeft, ShoppingCart } from "lucide-react";
+import { Search, Store, X, ArrowLeft, ShoppingCart, SlidersHorizontal } from "lucide-react";
 
 
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,7 @@ export default async function MarketplacePage({
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 sm:py-10">
       {/* Header */}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-2 rounded-2xl border border-border/80 bg-card p-4 shadow-sm sm:p-6">
         <div className="flex items-center gap-2">
           <Link
             href="/home"
@@ -76,7 +76,7 @@ export default async function MarketplacePage({
       <form
         action="/marketplace"
         method="GET"
-        className="flex flex-col sm:flex-row gap-2.5 sm:gap-3"
+        className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 rounded-2xl border border-border/80 bg-card p-3 shadow-sm"
       >
         {categorySlug && (
           <input type="hidden" name="category" value={categorySlug} />
@@ -92,23 +92,24 @@ export default async function MarketplacePage({
             defaultValue={q ?? ""}
             placeholder="Search by product name..."
             aria-label="Search products"
-            className="h-12 w-full pl-11 rounded-lg border-border bg-card text-base shadow-xs"
+            className="h-12 w-full pl-11 rounded-xl border-border bg-background text-base shadow-none"
           />
         </div>
         <Button
           type="submit"
-          className="h-12 w-full sm:w-auto px-6 font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg shrink-0"
+          className="h-12 w-full sm:w-auto px-6 font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl shrink-0"
         >
           Search products
         </Button>
       </form>
 
       {/* Category Pills Filter */}
-      <div className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Categories
-        </span>
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <SlidersHorizontal className="size-4 text-primary" />
+          <span>Browse categories</span>
+        </div>
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none snap-x">
           <Link
             href={
               q || vendorSlug
@@ -205,12 +206,12 @@ export default async function MarketplacePage({
           )}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="text-xs text-muted-foreground font-medium">
             Showing {productsList.length} product{productsList.length === 1 ? "" : "s"}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
             {productsList.map((product) => {
               const vendorImage = product.imageUrl?.startsWith("/") && !product.imageUrl.startsWith("//")
                 ? product.imageUrl
@@ -222,15 +223,15 @@ export default async function MarketplacePage({
               return (
               <Card
                 key={product.id}
-                className="gap-0 rounded-xl border border-border/80 bg-card p-0 shadow-xs transition-all hover:border-primary/50"
+                className="group gap-0 overflow-hidden rounded-2xl border border-border/80 bg-card p-0 shadow-sm transition-shadow hover:shadow-md"
               >
-                <div className="relative aspect-square w-full bg-muted">
+                <div className="relative aspect-[4/3] w-full bg-muted sm:aspect-square">
                   <Image
                     src={imageSrc}
                     alt={isSampleImage ? `Sample photo for ${product.name}` : vendorImage ? `Photo of ${product.name}` : `No product photo available for ${product.name}`}
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 360px"
-                    className="object-cover"
+                    className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                   />
                   {isSampleImage && (
                     <span className="absolute left-3 top-3 rounded-full bg-card/95 px-2.5 py-1 text-xs font-semibold text-foreground shadow-sm">
@@ -243,7 +244,7 @@ export default async function MarketplacePage({
                     </span>
                   )}
                 </div>
-                <CardContent className="flex flex-1 flex-col gap-3 p-4 sm:p-5">
+                <CardContent className="flex flex-1 flex-col gap-2.5 p-3 sm:gap-3 sm:p-5">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-semibold text-muted-foreground bg-muted/40 px-2.5 py-0.5 rounded-md">
                       {product.categoryName}
@@ -256,17 +257,17 @@ export default async function MarketplacePage({
                   </div>
 
                   <div>
-                    <h2 className="font-heading text-lg font-bold text-foreground line-clamp-2 leading-snug">
+                    <h2 className="font-heading text-sm font-bold leading-snug text-foreground line-clamp-2 sm:text-lg">
                       {product.name}
                     </h2>
                     {product.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
+                      <p className="hidden text-sm leading-relaxed text-muted-foreground line-clamp-2 mt-1 sm:block">
                         {product.description}
                       </p>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
+                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground pt-1 sm:text-xs">
                     <Store className="size-3.5 text-primary shrink-0" />
                     <span className="line-clamp-1 font-medium">
                       Sold by {product.vendorShopName}
@@ -274,18 +275,18 @@ export default async function MarketplacePage({
                   </div>
 
                   {/* Formatted Naira Price */}
-                  <div className="pt-2">
-                    <span className="text-xs text-muted-foreground block font-medium">
+                  <div className="pt-1 sm:pt-2">
+                    <span className="hidden text-xs text-muted-foreground font-medium sm:block">
                       Price
                     </span>
-                    <span className="font-heading text-xl sm:text-2xl font-bold text-primary tracking-tight">
+                    <span className="font-heading text-base font-bold tracking-tight text-primary sm:text-2xl">
                       {formatNaira(product.priceKobo)}
                     </span>
                   </div>
                   {/* View Product action button (copy from docs/content-guide.md) */}
                   <Button
                     asChild
-                    className="h-12 w-full font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg"
+                    className="h-10 w-full px-2 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg sm:h-12 sm:px-4 sm:text-sm"
                   >
                     <Link
                       href={`/marketplace?q=${encodeURIComponent(product.name)}`}
@@ -297,7 +298,7 @@ export default async function MarketplacePage({
                 
 
                 {/* Add-to-cart is available directly from the product card. */}
-                <div className="pt-4 mt-auto">
+                <div className="px-3 pb-3 mt-auto sm:px-5 sm:pb-5">
                   <AddToCartButton productId={product.id} disabled={product.stockQuantity < 1} />
                 </div>
               </Card>

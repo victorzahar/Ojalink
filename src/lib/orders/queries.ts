@@ -17,9 +17,14 @@ export async function getBuyerOrders(buyerId: string) {
       status: orders.status,
       totalKobo: orders.totalKobo,
       createdAt: orders.createdAt,
+      deliveryAddress: orders.deliveryAddress,
+      deliveryArea: orders.deliveryArea,
+      paymentStatus: payments.status,
     })
     .from(orders)
     .innerJoin(vendors, eq(orders.vendorId, vendors.id))
+    .leftJoin(payments, eq(payments.orderId, orders.id))
+    .leftJoin(deliveries, eq(deliveries.orderId, orders.id))
     .where(buyerOrdersScope(buyerId))
     .orderBy(desc(orders.createdAt));
 
