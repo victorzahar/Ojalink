@@ -1,6 +1,6 @@
 import "server-only";
 
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 
 import { getDb } from "@/lib/db";
 import { deliveries, orderItems, orders, payments, vendors } from "@/lib/db/schema";
@@ -19,12 +19,9 @@ export async function getBuyerOrders(buyerId: string) {
       createdAt: orders.createdAt,
       deliveryAddress: orders.deliveryAddress,
       deliveryArea: orders.deliveryArea,
-      paymentStatus: payments.status,
     })
     .from(orders)
     .innerJoin(vendors, eq(orders.vendorId, vendors.id))
-    .leftJoin(payments, eq(payments.orderId, orders.id))
-    .leftJoin(deliveries, eq(deliveries.orderId, orders.id))
     .where(buyerOrdersScope(buyerId))
     .orderBy(desc(orders.createdAt));
 
@@ -32,12 +29,20 @@ export async function getBuyerOrders(buyerId: string) {
     return [];
   }
 
-  const buyerOrderItems = await db
-    .select({ orderId: orderItems.orderId, productName: orderItems.productName })
-    .from(orderItems)
-    .innerJoin(orders, eq(orderItems.orderId, orders.id))
-    .where(buyerOrdersScope(buyerId))
-    .orderBy(orderItems.createdAt);
+  const buyerOrderIds = buyerOrders.map((order) => order.id);
+  const [buyerOrderItems, buyerOrderPayments] = await Promise.all([
+    db
+      .select({ orderId: orderItems.orderId, productName: orderItems.productName })
+      .from(orderItems)
+      .innerJoin(orders, eq(orderItems.orderId, orders.id))
+      .where(buyerOrdersScope(buyerId))
+      .orderBy(orderItems.createdAt),
+    db
+      .select({ orderId: payments.orderId, status: payments.status })
+      .from(payments)
+      .where(inArray(payments.orderId, buyerOrderIds))
+      .orderBy(desc(payments.createdAt), desc(payments.id)),
+  ]);
 
   const itemsByOrder = new Map<string, string[]>();
   for (const item of buyerOrderItems) {
@@ -46,12 +51,20 @@ export async function getBuyerOrders(buyerId: string) {
     itemsByOrder.set(item.orderId, items);
   }
 
+  const latestPaymentByOrder = new Map<string, typeof buyerOrderPayments[number]["status"]>();
+  for (const payment of buyerOrderPayments) {
+    if (!latestPaymentByOrder.has(payment.orderId)) {
+      latestPaymentByOrder.set(payment.orderId, payment.status);
+    }
+  }
+
   return buyerOrders.map((order) => {
     const itemNames = itemsByOrder.get(order.id) ?? [];
     const firstItem = itemNames[0];
 
     return {
       ...order,
+      paymentStatus: latestPaymentByOrder.get(order.id) ?? null,
       itemsSummary: firstItem
         ? `${firstItem}${itemNames.length > 1 ? ` + ${itemNames.length - 1} more` : ""}`
         : "No items",

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 
@@ -13,6 +13,7 @@ const navLink = "min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-foregrou
 
 export function PublicNavigation() {
   const pathname = usePathname();
+  const mobileMenuRef = useRef<HTMLDetailsElement>(null);
   const [user, setUser] = useState<AuthUser>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
 
@@ -33,7 +34,11 @@ export function PublicNavigation() {
     const refreshOnFocus = () => { if (document.visibilityState === "visible") void refreshSession(); };
     window.addEventListener("focus", refreshOnFocus);
     document.addEventListener("visibilitychange", refreshOnFocus);
-    return () => { active = false; };
+    return () => {
+      active = false;
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnFocus);
+    };
   }, [pathname]);
 
   const accountHref = user?.role && user.role in roleHome
@@ -66,11 +71,19 @@ export function PublicNavigation() {
         {accountAction}
         <Link href="/marketplace" className="ml-1 inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground outline-none transition hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50">Start shopping</Link>
       </nav>
-      <details className="group relative lg:hidden">
+      <details ref={mobileMenuRef} className="group relative lg:hidden">
         <summary aria-label="Open navigation menu" className="flex size-11 cursor-pointer list-none items-center justify-center rounded-xl border border-border bg-card text-primary outline-none focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden">
           <Menu aria-hidden="true" className="size-5" />
         </summary>
-        <nav aria-label="Mobile navigation" className="absolute right-0 top-14 z-50 grid w-[min(88vw,20rem)] gap-1 rounded-2xl border border-border bg-card p-3 shadow-lg">
+        <nav
+          aria-label="Mobile navigation"
+          onClick={(event) => {
+            if (event.target instanceof Element && event.target.closest("a")) {
+              mobileMenuRef.current?.removeAttribute("open");
+            }
+          }}
+          className="absolute right-0 top-14 z-50 grid w-[min(88vw,20rem)] gap-1 rounded-2xl border border-border bg-card p-3 shadow-lg"
+        >
           <Link href="/#about" className={navLink}>About</Link>
           <Link href="/#how-it-works" className={navLink}>How it works</Link>
           <Link href="/marketplace" className={navLink}>Marketplace</Link>
