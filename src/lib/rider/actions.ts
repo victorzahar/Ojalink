@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/guard";
 import { getDb } from "@/lib/db";
 import { deliveries, orders } from "@/lib/db/schema";
+import { emailBuyerAboutStatus } from "@/lib/rider/notify-buyer";
 import { requiredStatusBefore } from "@/lib/rider/status-flow";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -146,6 +147,8 @@ export async function markPickedUp(deliveryId: unknown): Promise<RiderActionResu
     }
 
     refreshRiderPages();
+    // Tell the buyer. Runs only after the update worked; it never throws.
+    await emailBuyerAboutStatus(checked.deliveryId, checked.riderId, "picked_up");
     return { ok: true, message: "Marked as picked up. Take it to the buyer." };
   } catch {
     return { ok: false, message: genericError };
@@ -205,6 +208,8 @@ export async function markDelivered(deliveryId: unknown): Promise<RiderActionRes
     }
 
     refreshRiderPages();
+    // Tell the buyer. Runs only after the update worked; it never throws.
+    await emailBuyerAboutStatus(checked.deliveryId, checked.riderId, "delivered");
     return { ok: true, message: "Delivered. Well done!" };
   } catch {
     return { ok: false, message: genericError };
