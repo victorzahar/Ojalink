@@ -79,6 +79,7 @@ describe("public vendor storefront scopes", () => {
       },
       [
         {
+          id: "product-id",
           vendorId: "vendor-id",
           stockQuantity: 24,
           slug: "ankara-fabric",

@@ -49,6 +49,7 @@ export function projectPublicVendorStorefront<
     approvalStatus: string;
   },
   Product extends {
+    id: string;
     vendorId: string;
     slug: string;
     name: string;
@@ -75,6 +76,7 @@ export function projectPublicVendorStorefront<
       isVerified: vendor.approvalStatus === "approved",
     },
     products: products.map((product) => ({
+      id: product.id,
       slug: product.slug,
       name: product.name,
       description: product.description,

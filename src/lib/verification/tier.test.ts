@@ -67,14 +67,14 @@ describe("tier order limits", () => {
     expect(orderWithinTierPerOrderCap(0, 100_00)).toBe(false);
   });
 
-  it("caps tier 1 per-order at ₦50,000", () => {
-    expect(orderWithinTierLimits(1, 50_000_00, 0)).toMatchObject({ ok: true });
-    expect(orderWithinTierLimits(1, 50_000_00 + 1, 0)).toMatchObject({ ok: false, reason: "order_total" });
+  it("caps tier 1 per-order at ₦100,000", () => {
+    expect(orderWithinTierLimits(1, 100_000_00, 0)).toMatchObject({ ok: true });
+    expect(orderWithinTierLimits(1, 100_000_00 + 1, 0)).toMatchObject({ ok: false, reason: "order_total" });
   });
 
-  it("caps tier 1 weekly at ₦100,000 across orders", () => {
-    expect(orderWithinTierLimits(1, 40_000_00, 60_000_00)).toMatchObject({ ok: true });
-    expect(orderWithinTierLimits(1, 40_000_00, 60_000_01)).toMatchObject({ ok: false, reason: "weekly_total" });
+  it("caps tier 1 weekly at ₦200,000 across orders", () => {
+    expect(orderWithinTierLimits(1, 40_000_00, 160_000_00)).toMatchObject({ ok: true });
+    expect(orderWithinTierLimits(1, 40_000_00, 160_000_01)).toMatchObject({ ok: false, reason: "weekly_total" });
   });
 
   it("gives tier 2 the higher limits", () => {
