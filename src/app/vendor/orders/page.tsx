@@ -1,5 +1,7 @@
+import type { Metadata } from "next";
+import Link from "next/link";
 import { and, desc, eq, inArray } from "drizzle-orm";
-
+import { Card, CardContent } from "@/components/ui/card";
 import { OrderActions } from "@/components/vendor-orders/order-actions";
 import { requireRole } from "@/lib/auth/guard";
 import { getDb } from "@/lib/db";
@@ -9,6 +11,11 @@ import { formatDateLagos, formatNaira } from "@/lib/orders/format";
 // This page reads the session on every request. Block on the server so
 // protected content is never served from the static shell or a cache.
 export const instant = false;
+
+export const metadata: Metadata = {
+  title: "Orders · OjaLink",
+  description: "Your OjaLink vendor orders.",
+};
 
 // Live status names only. "pending" is deliberately absent: the buyer hasn't paid yet.
 const GROUPS = {
@@ -59,8 +66,14 @@ export default async function VendorOrdersPage() {
     .orderBy(desc(orders.createdAt));
 
   return (
-    <main>
-      <h1>Orders</h1>
+    <main className="mx-auto flex min-h-svh w-full max-w-md flex-col gap-6 px-4 py-8">
+      <div>
+        <p className="text-sm font-medium text-muted-foreground">Vendor area</p>
+        <h1 className="font-heading text-[28px] leading-tight font-bold text-foreground">
+          Orders
+        </h1>
+      </div>
+
       {Object.entries(GROUPS).map(([key, group]) => {
         const matching = rows.filter((r) =>
           (group.statuses as readonly string[]).includes(r.status),
@@ -69,19 +82,35 @@ export default async function VendorOrdersPage() {
         if (key === "history") shown = shown.slice(0, HISTORY_LIMIT);
 
         return (
-          <section key={key}>
-            <h2>
+          <section key={key} className="flex flex-col gap-3">
+            <h2 className="text-lg font-semibold text-foreground">
               {group.title} ({matching.length})
             </h2>
             {shown.length === 0 ? (
-              <p>No orders here.</p>
+              <p className="text-base text-muted-foreground">No orders here.</p>
             ) : (
-              <ul>
+              <ul className="flex flex-col gap-3">
                 {shown.map((r) => (
                   <li key={r.id}>
-                    Order {shortRef(r.id)} · {formatDateLagos(r.createdAt)} ·{" "}
-                    {formatNaira(r.totalKobo)} · {STATUS_LABELS[r.status] ?? r.status}
-                    {r.status === "paid" && <OrderActions orderId={r.id} />}
+                    <Card size="sm">
+                      <CardContent className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-base font-semibold text-foreground">
+                            Order {shortRef(r.id)}
+                          </p>
+                          <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                            {STATUS_LABELS[r.status] ?? r.status}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {formatDateLagos(r.createdAt)}
+                        </p>
+                        <p className="text-xl font-bold text-foreground">
+                          {formatNaira(r.totalKobo)}
+                        </p>
+                        {r.status === "paid" && <OrderActions orderId={r.id} />}
+                      </CardContent>
+                    </Card>
                   </li>
                 ))}
               </ul>
@@ -89,6 +118,13 @@ export default async function VendorOrdersPage() {
           </section>
         );
       })}
+
+      <Link
+        href="/vendor"
+        className="inline-flex min-h-11 items-center font-medium text-primary underline-offset-4 hover:underline"
+      >
+        ← Back to vendor area
+      </Link>
     </main>
   );
 }
