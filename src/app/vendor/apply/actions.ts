@@ -62,17 +62,6 @@ export async function submitVendorApplication(
       .where(eq(vendors.userId, auth.id))
       .limit(1);
 
-    if (existingVendor) {
-      return {
-        ok: false,
-        status: 409,
-        message:
-          existingVendor.approvalStatus === "pending"
-            ? "Your application is already waiting for review."
-            : "An application for this account already exists.",
-      };
-    }
-
     const [market] = await db
       .select({ id: markets.id })
       .from(markets)
@@ -91,7 +80,7 @@ export async function submitVendorApplication(
         .from(vendors)
         .where(eq(vendors.slug, candidate))
         .limit(1);
-      if (!taken) {
+      if (!taken || (existingVendor && taken.id === existingVendor.id)) {
         chosenSlug = candidate;
         break;
       }
@@ -101,6 +90,45 @@ export async function submitVendorApplication(
       return {
         ok: false,
         message: "All shop address variants are taken. Try a different shop name.",
+      };
+    }
+
+    if (existingVendor) {
+      if (existingVendor.approvalStatus === "rejected") {
+        await db
+          .update(vendors)
+          .set({
+            marketId: market.id,
+            shopName: application.data.shopName,
+            slug: chosenSlug,
+            description: application.data.description || null,
+            approvalStatus: "pending",
+            stallNumber: application.data.stallNumber,
+            businessType: application.data.businessType,
+            cacNumber: application.data.cacNumber || null,
+            tinNumber: application.data.tinNumber || null,
+            mapPin: application.data.mapPin,
+          })
+          .where(eq(vendors.id, existingVendor.id));
+
+        revalidatePath("/admin/vendors");
+        revalidatePath("/vendor/apply");
+        revalidatePath("/buyer");
+
+        return {
+          ok: true,
+          message:
+            "Application re-submitted. An admin will review your shop and you will get vendor access once approved.",
+        };
+      }
+
+      return {
+        ok: false,
+        status: 409,
+        message:
+          existingVendor.approvalStatus === "pending"
+            ? "Your application is already waiting for review."
+            : "An application for this account already exists.",
       };
     }
 
@@ -120,6 +148,7 @@ export async function submitVendorApplication(
 
     revalidatePath("/admin/vendors");
     revalidatePath("/vendor/apply");
+    revalidatePath("/buyer");
 
     return {
       ok: true,

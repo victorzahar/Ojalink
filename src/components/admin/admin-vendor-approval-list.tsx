@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
-
 import { useRouter } from "next/navigation";
 
-import { updateVendorApprovalStatus } from "@/app/admin/vendors/actions";
+import {
+  disableVendor,
+  reactivateVendor,
+  updateVendorApprovalStatus,
+} from "@/app/admin/vendors/actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -43,7 +46,7 @@ type Feedback = { ok: boolean; message: string };
 const statusLabels: Record<VendorApprovalStatus, string> = {
   pending: "Pending",
   approved: "Approved",
-  rejected: "Rejected",
+  rejected: "Disabled / Rejected",
 };
 
 const statusStyles: Record<VendorApprovalStatus, string> = {
@@ -64,6 +67,7 @@ export function AdminVendorApprovalList({ vendors }: { vendors: AdminVendor[] })
   const [filter, setFilter] = useState<VendorStatusFilter>("all");
   const [pendingVendorId, setPendingVendorId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Record<string, Feedback>>({});
+  const [confirmingDisableId, setConfirmingDisableId] = useState<string | null>(null);
 
   const filteredVendors =
     filter === "all"
@@ -98,6 +102,65 @@ export function AdminVendorApprovalList({ vendors }: { vendors: AdminVendor[] })
     }
   }
 
+  async function handleDisableVendor(vendorId: string) {
+    setPendingVendorId(vendorId);
+    setFeedback((current) => {
+      const next = { ...current };
+      delete next[vendorId];
+      return next;
+    });
+
+    try {
+      const result = await disableVendor(vendorId);
+      setFeedback((current) => ({
+        ...current,
+        [vendorId]: { ok: result.ok, message: result.message },
+      }));
+      if (result.ok) {
+        setConfirmingDisableId(null);
+        router.refresh();
+      }
+    } catch {
+      setFeedback((current) => ({
+        ...current,
+        [vendorId]: {
+          ok: false,
+          message: "Could not disable vendor. Check your connection and try again.",
+        },
+      }));
+    } finally {
+      setPendingVendorId(null);
+    }
+  }
+
+  async function handleReactivateVendor(vendorId: string) {
+    setPendingVendorId(vendorId);
+    setFeedback((current) => {
+      const next = { ...current };
+      delete next[vendorId];
+      return next;
+    });
+
+    try {
+      const result = await reactivateVendor(vendorId);
+      setFeedback((current) => ({
+        ...current,
+        [vendorId]: { ok: result.ok, message: result.message },
+      }));
+      if (result.ok) router.refresh();
+    } catch {
+      setFeedback((current) => ({
+        ...current,
+        [vendorId]: {
+          ok: false,
+          message: "Could not re-activate vendor. Check your connection and try again.",
+        },
+      }));
+    } finally {
+      setPendingVendorId(null);
+    }
+  }
+
   const vendorCount = filteredVendors.length;
 
   return (
@@ -123,7 +186,7 @@ export function AdminVendorApprovalList({ vendors }: { vendors: AdminVendor[] })
             <option value="all">All statuses</option>
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
+            <option value="rejected">Disabled / Rejected</option>
           </select>
         </div>
       </CardHeader>
@@ -139,6 +202,7 @@ export function AdminVendorApprovalList({ vendors }: { vendors: AdminVendor[] })
             {filteredVendors.map((vendor) => {
               const isUpdating = pendingVendorId === vendor.id;
               const vendorFeedback = feedback[vendor.id];
+              const isConfirmingDisable = confirmingDisableId === vendor.id;
 
               return (
                 <li key={vendor.id}>
@@ -211,6 +275,7 @@ export function AdminVendorApprovalList({ vendors }: { vendors: AdminVendor[] })
                       </p>
                     ) : null}
 
+                    {/* Pending Actions */}
                     {vendor.approvalStatus === "pending" ? (
                       <div className="mt-5 flex flex-col gap-2 border-t border-border pt-4 sm:flex-row">
                         <Button
@@ -227,6 +292,64 @@ export function AdminVendorApprovalList({ vendors }: { vendors: AdminVendor[] })
                           onClick={() => void changeStatus(vendor.id, "rejected")}
                         >
                           {isUpdating ? "Saving…" : "Reject"}
+                        </Button>
+                      </div>
+                    ) : null}
+
+                    {/* Approved Actions: Disable Vendor */}
+                    {vendor.approvalStatus === "approved" ? (
+                      <div className="mt-5 border-t border-border pt-4">
+                        {isConfirmingDisable ? (
+                          <div className="space-y-2 rounded-md border border-destructive/30 bg-destructive/5 p-3">
+                            <p className="text-xs font-semibold text-destructive">
+                              Confirm Disable Vendor
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              This will hide all their products from the marketplace and revert their role to buyer. They can be re-activated later.
+                            </p>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                disabled={pendingVendorId !== null}
+                                onClick={() => void handleDisableVendor(vendor.id)}
+                              >
+                                {isUpdating ? "Disabling…" : "Yes, disable vendor"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setConfirmingDisableId(null)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="w-full"
+                            disabled={pendingVendorId !== null}
+                            onClick={() => setConfirmingDisableId(vendor.id)}
+                          >
+                            Disable vendor
+                          </Button>
+                        )}
+                      </div>
+                    ) : null}
+
+                    {/* Rejected Actions: Re-activate Vendor */}
+                    {vendor.approvalStatus === "rejected" ? (
+                      <div className="mt-5 border-t border-border pt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full text-green-700 hover:text-green-800 border-green-300 hover:bg-green-50"
+                          disabled={pendingVendorId !== null}
+                          onClick={() => void handleReactivateVendor(vendor.id)}
+                        >
+                          {isUpdating ? "Re-activating…" : "Re-activate vendor"}
                         </Button>
                       </div>
                     ) : null}
