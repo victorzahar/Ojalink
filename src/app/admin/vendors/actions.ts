@@ -87,7 +87,11 @@ export async function updateVendorApprovalStatus(
     }
 
     revalidatePath("/admin/vendors");
+    revalidatePath("/marketplace");
+    revalidatePath("/vendors");
     revalidatePath("/vendor/apply");
+    revalidatePath("/buyer");
+
     return {
       ok: true,
       message:
@@ -99,6 +103,146 @@ export async function updateVendorApprovalStatus(
     return {
       ok: false,
       message: "Could not update this vendor. Please try again.",
+    };
+  }
+}
+
+/**
+ * Disable an active vendor who is leaving the platform or suspended.
+ * CAS Guard: only operates if the vendor's current status is 'approved'.
+ * Revokes vendor privileges (reverts role to 'buyer') and clears any payout hold.
+ */
+export async function disableVendor(
+  vendorId: unknown,
+): Promise<UpdateVendorStatusResult> {
+  const auth = await requireRole({ api: true }, "admin");
+  if (auth instanceof Response) {
+    const body = (await auth.json()) as { error?: string };
+    return {
+      ok: false,
+      status: auth.status,
+      message: body.error ?? "You do not have access.",
+    };
+  }
+
+  if (typeof vendorId !== "string" || !uuidPattern.test(vendorId)) {
+    return { ok: false, message: "That vendor could not be found." };
+  }
+
+  try {
+    const [updatedVendor] = await getDb()
+      .update(vendors)
+      .set({
+        approvalStatus: "rejected",
+        payoutHoldUntil: null,
+      })
+      .where(
+        and(
+          eq(vendors.id, vendorId),
+          eq(vendors.approvalStatus, "approved"),
+        ),
+      )
+      .returning({ id: vendors.id, userId: vendors.userId });
+
+    if (!updatedVendor) {
+      return {
+        ok: false,
+        status: 409,
+        message: "This vendor is not currently approved or no longer exists. Refresh the page.",
+      };
+    }
+
+    // Revoke vendor role back to buyer
+    await setUserRoleAsAdmin({
+      actorId: auth.id,
+      userId: updatedVendor.userId,
+      role: "buyer",
+    });
+
+    revalidatePath("/admin/vendors");
+    revalidatePath("/marketplace");
+    revalidatePath("/vendors");
+    revalidatePath("/vendor/apply");
+    revalidatePath("/buyer");
+
+    return {
+      ok: true,
+      message: "Vendor disabled successfully. Products hidden from marketplace and role reset to buyer.",
+    };
+  } catch {
+    return {
+      ok: false,
+      message: "Could not disable this vendor. Please try again.",
+    };
+  }
+}
+
+/**
+ * Re-activate a previously disabled or rejected vendor.
+ * CAS Guard: only operates if the vendor's current status is 'rejected'.
+ * Restores vendor privileges and sets a fresh 3-day payout hold.
+ */
+export async function reactivateVendor(
+  vendorId: unknown,
+): Promise<UpdateVendorStatusResult> {
+  const auth = await requireRole({ api: true }, "admin");
+  if (auth instanceof Response) {
+    const body = (await auth.json()) as { error?: string };
+    return {
+      ok: false,
+      status: auth.status,
+      message: body.error ?? "You do not have access.",
+    };
+  }
+
+  if (typeof vendorId !== "string" || !uuidPattern.test(vendorId)) {
+    return { ok: false, message: "That vendor could not be found." };
+  }
+
+  try {
+    const [updatedVendor] = await getDb()
+      .update(vendors)
+      .set({
+        approvalStatus: "approved",
+        payoutHoldUntil: lagosDatePlusDays(3),
+      })
+      .where(
+        and(
+          eq(vendors.id, vendorId),
+          eq(vendors.approvalStatus, "rejected"),
+        ),
+      )
+      .returning({ id: vendors.id, userId: vendors.userId });
+
+    if (!updatedVendor) {
+      return {
+        ok: false,
+        status: 409,
+        message: "This vendor is not currently disabled or no longer exists. Refresh the page.",
+      };
+    }
+
+    // Restore vendor role
+    await setUserRoleAsAdmin({
+      actorId: auth.id,
+      userId: updatedVendor.userId,
+      role: "vendor",
+    });
+
+    revalidatePath("/admin/vendors");
+    revalidatePath("/marketplace");
+    revalidatePath("/vendors");
+    revalidatePath("/vendor/apply");
+    revalidatePath("/buyer");
+
+    return {
+      ok: true,
+      message: "Vendor re-activated successfully. Storefront and vendor access restored.",
+    };
+  } catch {
+    return {
+      ok: false,
+      message: "Could not re-activate this vendor. Please try again.",
     };
   }
 }

@@ -31,18 +31,36 @@ async function applicationStatusCard(status: "pending" | "approved" | "rejected"
     },
     rejected: {
       title: "Application not approved",
-      body: "An admin reviewed your application and did not approve it. Contact an admin if you think this is a mistake.",
+      body: "An admin reviewed your application and did not approve it. You can review your vehicle and guarantor details and submit an updated application.",
     },
   }[status];
 
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-4">
-        <p className="text-base font-medium text-foreground">{copy.title}</p>
+        <div className="flex items-center justify-between">
+          <p className="text-base font-semibold text-foreground">{copy.title}</p>
+          <span
+            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+              status === "approved"
+                ? "bg-green-100 text-green-900"
+                : status === "rejected"
+                ? "bg-red-100 text-red-900"
+                : "bg-amber-100 text-amber-900"
+            }`}
+          >
+            {status.toUpperCase()}
+          </span>
+        </div>
         <p className="text-sm text-muted-foreground">{copy.body}</p>
         {status === "approved" && (
           <Button asChild className="w-full">
             <Link href="/rider">Go to rider area</Link>
+          </Button>
+        )}
+        {status === "rejected" && (
+          <Button asChild className="w-full">
+            <Link href="/rider/apply?reapply=true">Update documents and apply again</Link>
           </Button>
         )}
         <Button asChild variant="outline" className="w-full">
@@ -54,9 +72,13 @@ async function applicationStatusCard(status: "pending" | "approved" | "rejected"
   );
 }
 
-export default async function RiderApplyPage() {
+export default async function RiderApplyPage(props: {
+  searchParams?: Promise<{ reapply?: string }>;
+}) {
   const user = await requireRole("buyer");
   const db = getDb();
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  const isReapplying = searchParams.reapply === "true";
 
   if (user.role === "admin") {
     return (
@@ -82,7 +104,7 @@ export default async function RiderApplyPage() {
     .where(eq(roleRequests.userId, user.id))
     .limit(1);
 
-  if (existingRequest) {
+  if (existingRequest && (!isReapplying || existingRequest.status !== "rejected")) {
     return (
       <main className="mx-auto flex min-h-svh w-full max-w-md flex-col justify-center gap-6 px-4 py-8">
         {await applicationStatusCard(existingRequest.status)}
@@ -95,12 +117,19 @@ export default async function RiderApplyPage() {
       <div>
         <p className="text-sm font-medium text-muted-foreground">Become a rider</p>
         <h1 className="font-heading text-[28px] leading-tight font-bold text-foreground">
-          Deliver orders on OjaLink
+          {existingRequest?.status === "rejected" ? "Update Rider Application" : "Deliver orders on OjaLink"}
         </h1>
         <p className="mt-1 text-base text-muted-foreground">
           Applying as {user.email}
         </p>
       </div>
+
+      {existingRequest?.status === "rejected" && (
+        <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+          <strong>Previous application rejected:</strong> Please review and update your vehicle and guarantor details below to re-submit for review.
+        </div>
+      )}
+
       <RiderApplyForm contactPhone={user.phone || "Not provided"} />
     </main>
   );

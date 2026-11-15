@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
-
 import { useRouter } from "next/navigation";
 
-import { updateRiderRequestStatus } from "@/app/admin/riders/actions";
+import {
+  disableRider,
+  reactivateRider,
+  updateRiderRequestStatus,
+} from "@/app/admin/riders/actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -38,6 +41,7 @@ type AdminRiderProfile = {
 
 type AdminRiderRequest = {
   id: string;
+  userId: string;
   status: RequestStatus;
   note: string | null;
   createdAt: Date;
@@ -65,7 +69,7 @@ type Feedback = { ok: boolean; message: string };
 const statusLabels: Record<RequestStatus, string> = {
   pending: "Pending",
   approved: "Approved",
-  rejected: "Rejected",
+  rejected: "Disabled / Rejected",
 };
 
 const statusStyles: Record<RequestStatus, string> = {
@@ -86,6 +90,7 @@ export function AdminRiderRequestList({ requests }: { requests: AdminRiderReques
   const [filter, setFilter] = useState<RequestFilter>("all");
   const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Record<string, Feedback>>({});
+  const [confirmingDisableId, setConfirmingDisableId] = useState<string | null>(null);
 
   const filteredRequests =
     filter === "all"
@@ -120,6 +125,65 @@ export function AdminRiderRequestList({ requests }: { requests: AdminRiderReques
     }
   }
 
+  async function handleDisableRider(requestId: string, targetUserId: string) {
+    setPendingRequestId(requestId);
+    setFeedback((current) => {
+      const next = { ...current };
+      delete next[requestId];
+      return next;
+    });
+
+    try {
+      const result = await disableRider(requestId, targetUserId);
+      setFeedback((current) => ({
+        ...current,
+        [requestId]: { ok: result.ok, message: result.message },
+      }));
+      if (result.ok) {
+        setConfirmingDisableId(null);
+        router.refresh();
+      }
+    } catch {
+      setFeedback((current) => ({
+        ...current,
+        [requestId]: {
+          ok: false,
+          message: "Could not disable rider. Check your connection and try again.",
+        },
+      }));
+    } finally {
+      setPendingRequestId(null);
+    }
+  }
+
+  async function handleReactivateRider(requestId: string, targetUserId: string) {
+    setPendingRequestId(requestId);
+    setFeedback((current) => {
+      const next = { ...current };
+      delete next[requestId];
+      return next;
+    });
+
+    try {
+      const result = await reactivateRider(requestId, targetUserId);
+      setFeedback((current) => ({
+        ...current,
+        [requestId]: { ok: result.ok, message: result.message },
+      }));
+      if (result.ok) router.refresh();
+    } catch {
+      setFeedback((current) => ({
+        ...current,
+        [requestId]: {
+          ok: false,
+          message: "Could not re-activate rider. Check your connection and try again.",
+        },
+      }));
+    } finally {
+      setPendingRequestId(null);
+    }
+  }
+
   const requestCount = filteredRequests.length;
 
   return (
@@ -145,7 +209,7 @@ export function AdminRiderRequestList({ requests }: { requests: AdminRiderReques
             <option value="all">All statuses</option>
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
+            <option value="rejected">Disabled / Rejected</option>
           </select>
         </div>
       </CardHeader>
@@ -161,6 +225,7 @@ export function AdminRiderRequestList({ requests }: { requests: AdminRiderReques
             {filteredRequests.map((request) => {
               const isUpdating = pendingRequestId === request.id;
               const requestFeedback = feedback[request.id];
+              const isConfirmingDisable = confirmingDisableId === request.id;
 
               return (
                 <li key={request.id}>
@@ -262,6 +327,7 @@ export function AdminRiderRequestList({ requests }: { requests: AdminRiderReques
                       </p>
                     ) : null}
 
+                    {/* Pending Actions */}
                     {request.status === "pending" ? (
                       <div className="mt-5 flex flex-col gap-2 border-t border-border pt-4 sm:flex-row">
                         <Button
@@ -278,6 +344,64 @@ export function AdminRiderRequestList({ requests }: { requests: AdminRiderReques
                           onClick={() => void changeStatus(request.id, "rejected")}
                         >
                           {isUpdating ? "Saving…" : "Reject"}
+                        </Button>
+                      </div>
+                    ) : null}
+
+                    {/* Approved Actions: Disable Rider */}
+                    {request.status === "approved" ? (
+                      <div className="mt-5 border-t border-border pt-4">
+                        {isConfirmingDisable ? (
+                          <div className="space-y-2 rounded-md border border-destructive/30 bg-destructive/5 p-3">
+                            <p className="text-xs font-semibold text-destructive">
+                              Confirm Disable Rider
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              This will immediately revoke delivery privileges and revert their account role to buyer. They can be re-activated later.
+                            </p>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                disabled={pendingRequestId !== null}
+                                onClick={() => void handleDisableRider(request.id, request.userId)}
+                              >
+                                {isUpdating ? "Disabling…" : "Yes, disable rider"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setConfirmingDisableId(null)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="w-full"
+                            disabled={pendingRequestId !== null}
+                            onClick={() => setConfirmingDisableId(request.id)}
+                          >
+                            Disable rider
+                          </Button>
+                        )}
+                      </div>
+                    ) : null}
+
+                    {/* Rejected / Disabled Actions: Re-activate Rider */}
+                    {request.status === "rejected" ? (
+                      <div className="mt-5 border-t border-border pt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full text-green-700 hover:text-green-800 border-green-300 hover:bg-green-50"
+                          disabled={pendingRequestId !== null}
+                          onClick={() => void handleReactivateRider(request.id, request.userId)}
+                        >
+                          {isUpdating ? "Re-activating…" : "Re-activate rider"}
                         </Button>
                       </div>
                     ) : null}
