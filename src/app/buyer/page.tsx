@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { and, count, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { LogoutButton } from "@/components/auth/logout-button";
 import { Button } from "@/components/ui/button";
@@ -15,15 +15,9 @@ import {
 import { requireRole } from "@/lib/auth/guard";
 import { getBuyerCart } from "@/lib/cart/queries";
 import { getDb } from "@/lib/db";
-import { identityVerifications, orders } from "@/lib/db/schema";
+import { identityVerifications } from "@/lib/db/schema";
 import { users } from "@/lib/auth/schema";
 import { formatNaira } from "@/lib/orders/format";
-import {
-  GOOD_HISTORY_DELIVERED_ORDERS,
-  TIER_LIMITS,
-  computeBuyerTier,
-  type BuyerTier,
-} from "@/lib/verification/tier";
 
 // This page reads the session, cart and orders state on every request. Block
 // on the server so protected content is never served from a static shell.
@@ -34,35 +28,14 @@ export const metadata: Metadata = {
   description: "Your OjaLink buyer area: orders, cart and shopping.",
 };
 
-const tierCopy: Record<BuyerTier, { title: string; description: string }> = {
-  0: {
-    title: "Verify your phone to start ordering",
-    description:
-      "Your account is browse-only until your phone number is verified. It takes about a minute.",
-  },
-  1: {
-    title: "Tier 1 — phone verified",
-    description:
-      "You can order up to ₦100,000 per order and ₦200,000 in any 7 days. Verify your identity (NIN) to raise the limits.",
-  },
-  2: {
-    title: "Tier 2 — identity verified",
-    description:
-      "You can order up to ₦500,000 per order and ₦1,000,000 in any 7 days. That is the highest level.",
-  },
-};
-
 export default async function BuyerPage() {
   const user = await requireRole("buyer");
   const cart = await getBuyerCart(user.id);
 
   const db = getDb();
-  const [[profile], [identityRow], [deliveredRow]] = await Promise.all([
+  const [[profile], [identityRow]] = await Promise.all([
     db
-      .select({
-        emailVerified: users.emailVerified,
-        phoneVerifiedAt: users.phoneVerifiedAt,
-      })
+      .select({ phoneVerifiedAt: users.phoneVerifiedAt })
       .from(users)
       .where(eq(users.id, user.id))
       .limit(1),
@@ -77,20 +50,10 @@ export default async function BuyerPage() {
         ),
       )
       .limit(1),
-    db
-      .select({ total: count() })
-      .from(orders)
-      .where(and(eq(orders.buyerId, user.id), eq(orders.status, "delivered"))),
   ]);
 
-  const tier = computeBuyerTier({
-    emailVerified: profile?.emailVerified ?? false,
-    phoneVerifiedAt: profile?.phoneVerifiedAt ?? null,
-    hasVerifiedIdentity: Boolean(identityRow),
-    deliveredOrderCount: Number(deliveredRow?.total ?? 0),
-  });
-  const limits = TIER_LIMITS[tier];
-  const deliveredCount = Number(deliveredRow?.total ?? 0);
+  const phoneVerified = Boolean(profile?.phoneVerifiedAt);
+  const identityVerified = Boolean(identityRow);
 
   const cartItemCount = cart.items.reduce((total, item) => total + item.quantity, 0);
 
@@ -142,33 +105,18 @@ export default async function BuyerPage() {
 
       <Card size="sm">
         <CardHeader>
-          <CardTitle>{tierCopy[tier].title}</CardTitle>
-          <CardDescription>{tierCopy[tier].description}</CardDescription>
+          <CardTitle>{phoneVerified ? "Your account is verified ✓" : "Verify your phone to start ordering"}</CardTitle>
+          <CardDescription>
+            {phoneVerified
+              ? "Your phone number is verified, so you can order any amount — there are no spending caps on OjaLink."
+              : "Your account can browse the marketplace until your phone number is verified. It takes about a minute."}
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <dl className="grid gap-2 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-muted-foreground">Per-order limit</dt>
-              <dd className="font-medium text-foreground">
-                {limits.perOrderKobo === 0 ? "Browse only" : formatNaira(limits.perOrderKobo)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">7-day limit</dt>
-              <dd className="font-medium text-foreground">
-                {limits.weeklyKobo === 0 ? "—" : formatNaira(limits.weeklyKobo)}
-              </dd>
-            </div>
-            {tier === 1 && (
-              <div className="sm:col-span-2">
-                <dt className="text-muted-foreground">Delivered orders toward Tier 2</dt>
-                <dd className="font-medium text-foreground">
-                  {deliveredCount} of {GOOD_HISTORY_DELIVERED_ORDERS}
-                </dd>
-              </div>
-            )}
-          </dl>
-          {tier < 1 && (
+          {identityVerified && (
+            <p className="text-sm font-medium text-green-900">Identity (NIN) verified ✓</p>
+          )}
+          {!phoneVerified && (
             <Button asChild className="w-full sm:w-auto">
               <Link href="/buyer/verify">Verify your phone number</Link>
             </Button>

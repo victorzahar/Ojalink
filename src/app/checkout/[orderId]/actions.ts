@@ -26,7 +26,10 @@ export async function initiatePaystackPayment(formData: FormData) {
   }
   const secretKey = process.env.PAYSTACK_SECRET_KEY?.trim();
   const callbackUrl = buildPaystackCallbackUrl(process.env.BETTER_AUTH_URL, orderId);
-  if (!secretKey || !secretKey.startsWith("sk_test_") || !callbackUrl) {
+  if (!secretKey || !(secretKey.startsWith("sk_test_") || secretKey.startsWith("sk_live_"))) {
+    redirect("/checkout/" + orderId + "?payment_error=setup");
+  }
+  if (!callbackUrl) {
     redirect("/checkout/" + orderId + "?payment_error=setup");
   }
   if (!Number.isSafeInteger(payment.totalKobo) || payment.totalKobo <= 0) {
@@ -52,6 +55,10 @@ export async function initiatePaystackPayment(formData: FormData) {
         currency: "NGN",
         reference: payment.reference,
         callback_url: callbackUrl,
+        // Card must be named explicitly: Paystack test mode returns
+        // "No active channel to process transaction" when the channel list
+        // is left to the integration default.
+        channels: ["card"],
         metadata: { order_id: orderId },
       }),
       cache: "no-store",
