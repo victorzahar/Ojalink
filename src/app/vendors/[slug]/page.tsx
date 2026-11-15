@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -86,7 +87,9 @@ async function StorefrontContent({ params }: VendorPageProps) {
               Products
             </h2>
           </div>
-          <p className="text-sm text-muted-foreground">Cart and checkout are coming soon.</p>
+          <p className="text-sm text-muted-foreground">
+            Add items to your cart, then check out with secure payment.
+          </p>
         </div>
 
         {products.length === 0 ? (
@@ -115,14 +118,7 @@ async function StorefrontContent({ params }: VendorPageProps) {
                     )}
                     <p className="mt-2 text-lg font-bold">{formatNaira(product.priceKobo)}</p>
                     <div className="mt-auto pt-2">
-                      <Button type="button" disabled className="w-full">
-                        {product.inStock ? "Add to cart" : "Out of stock"}
-                      </Button>
-                      {product.inStock && (
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          Cart and checkout are coming soon.
-                        </p>
-                      )}
+                      <AddToCartButton productId={product.id} disabled={!product.inStock} />
                     </div>
                   </CardContent>
                 </Card>

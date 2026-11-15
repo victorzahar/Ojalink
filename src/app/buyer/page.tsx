@@ -43,7 +43,7 @@ const tierCopy: Record<BuyerTier, { title: string; description: string }> = {
   1: {
     title: "Tier 1 — phone verified",
     description:
-      "You can order up to ₦50,000 per order and ₦100,000 in any 7 days. Verify your identity (NIN) to raise the limits.",
+      "You can order up to ₦100,000 per order and ₦200,000 in any 7 days. Verify your identity (NIN) to raise the limits.",
   },
   2: {
     title: "Tier 2 — identity verified",

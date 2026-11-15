@@ -90,7 +90,7 @@ export default async function BuyerVerifyPage() {
                 <CardTitle>Verify your phone number</CardTitle>
                 <CardDescription>
                   New accounts can browse the marketplace. Verifying your phone unlocks ordering,
-                  with a ₦50,000 limit per order. Verifying your identity later raises it.
+                  with a ₦100,000 limit per order. Verifying your identity later raises it.
                 </CardDescription>
               </CardHeader>
             </Card>

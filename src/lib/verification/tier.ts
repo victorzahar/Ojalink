@@ -25,7 +25,7 @@ export type TierLimits = {
  */
 export const TIER_LIMITS: Record<BuyerTier, TierLimits> = {
   0: { perOrderKobo: 0, weeklyKobo: 0 },
-  1: { perOrderKobo: 50_000_00, weeklyKobo: 100_000_00 },
+  1: { perOrderKobo: 100_000_00, weeklyKobo: 200_000_00 },
   2: { perOrderKobo: 500_000_00, weeklyKobo: 1_000_000_00 },
 };
 

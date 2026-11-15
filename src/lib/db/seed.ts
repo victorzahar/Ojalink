@@ -228,6 +228,21 @@ async function seed() {
   // This is a trusted server-side bootstrap step. Public sign-up always creates buyers.
   await db.update(users).set({ role: "admin" }).where(eq(users.id, admin.id));
 
+  // Two more admin accounts so the review workload (verifications, disputes,
+  // payouts) is not on a single person. They share SEED_ADMIN_PASSWORD until
+  // the lead rotates it — rotation then covers all three at once.
+  for (const extraAdmin of [
+    { email: "admin2@ojalink.test", name: "OjaLink Admin II" },
+    { email: "admin3@ojalink.test", name: "OjaLink Admin III" },
+  ]) {
+    const created = await ensureUser({
+      email: extraAdmin.email,
+      name: extraAdmin.name,
+      password: process.env.SEED_ADMIN_PASSWORD!,
+    });
+    await db.update(users).set({ role: "admin" }).where(eq(users.id, created.id));
+  }
+
   // Buyer: Tier 1 (phone verified) so the demo account can order within limits.
   const buyer = await ensureUser({
     email: "buyer@ojalink.test",
@@ -429,7 +444,7 @@ async function seed() {
       });
   }
 
-  console.log("Seed complete: 3 markets, 4 categories, 6 vendors, 20 products, verified accounts.");
+  console.log("Seed complete: 3 markets, 4 categories, 6 vendors, 20 products, 3 admins, verified accounts.");
 }
 
 await seed();

@@ -40,6 +40,7 @@ export const getPublicVendorStorefront = cache(async (slug: string) => {
   const [productRows, reviewRows] = await Promise.all([
     db
       .select({
+        id: products.id,
         slug: products.slug,
         vendorId: products.vendorId,
         name: products.name,
