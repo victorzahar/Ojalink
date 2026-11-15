@@ -1,12 +1,13 @@
 "use server";
 
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { requireRole } from "@/lib/auth/guard";
 import { getDb } from "@/lib/db";
 import { deliveries, orders } from "@/lib/db/schema";
 import { requiredStatusBefore } from "@/lib/rider/status-flow";
+import { generateHandoverCode, isValidHandoverCode } from "@/lib/deliveries/handover";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -109,7 +110,13 @@ export async function markPickedUp(deliveryId: unknown): Promise<RiderActionResu
     const [movedDeliveries] = await db.batch([
       db
         .update(deliveries)
-        .set({ status: "picked_up", pickedUpAt: now })
+        .set({
+          status: "picked_up",
+          pickedUpAt: now,
+          // Legacy rows have no handover code; give them one at pickup so the
+          // buyer always has a code before the handover happens.
+          confirmationCode: sql`coalesce(${deliveries.confirmationCode}, ${generateHandoverCode()})`,
+        })
         .where(
           and(
             eq(deliveries.id, checked.deliveryId),
@@ -156,15 +163,32 @@ export async function markPickedUp(deliveryId: unknown): Promise<RiderActionResu
  * picked_up -> delivered. Same one-transaction rule. The server (not the phone)
  * sets delivered_at on both rows with the same timestamp, as money-rules.md
  * requires, because weekly vendor payouts are grouped by orders.delivered_at.
+ *
+ * The buyer's handover code is verified in the same UPDATE: only a matching
+ * code (or a legacy delivery that never got a code) can close the job.
  */
-export async function markDelivered(deliveryId: unknown): Promise<RiderActionResult> {
+export async function markDelivered(
+  deliveryId: unknown,
+  handoverCode: unknown,
+): Promise<RiderActionResult> {
   const checked = await checkRider(deliveryId);
   if (checked.failure) return checked.failure;
+
+  if (handoverCode !== undefined && handoverCode !== null && handoverCode !== "" && !isValidHandoverCode(handoverCode)) {
+    return { ok: false, message: "The handover code is 4 digits. Ask the buyer for theirs." };
+  }
 
   const now = new Date();
 
   try {
     const db = getDb();
+    const codeCondition = (handoverCode && isValidHandoverCode(handoverCode))
+      ? or(
+          isNull(deliveries.confirmationCode),
+          eq(deliveries.confirmationCode, handoverCode),
+        )
+      : isNull(deliveries.confirmationCode);
+
     const [movedDeliveries] = await db.batch([
       db
         .update(deliveries)
@@ -174,6 +198,7 @@ export async function markDelivered(deliveryId: unknown): Promise<RiderActionRes
             eq(deliveries.id, checked.deliveryId),
             eq(deliveries.riderId, checked.riderId),
             eq(deliveries.status, requiredStatusBefore.delivered),
+            codeCondition,
           ),
         )
         .returning({ id: deliveries.id }),
@@ -200,7 +225,8 @@ export async function markDelivered(deliveryId: unknown): Promise<RiderActionRes
       return {
         ok: false,
         status: 409,
-        message: "This job cannot be marked as delivered. It may already be done.",
+        message:
+          "Could not close this delivery. Check that the buyer's 4-digit handover code is correct — it may already be done.",
       };
     }
 

@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/guard";
 import { getDb } from "@/lib/db";
-import { orders, vendors } from "@/lib/db/schema";
+import { identityVerifications, orders, vendors } from "@/lib/db/schema";
 import { formatNaira } from "@/lib/orders/format";
 import { summarisePayouts } from "@/lib/orders/payout-summary";
 import { vendorOrdersScope } from "@/lib/orders/vendor-scope";
+import { BankVerifyForm } from "@/components/vendor/bank-verify-form";
+import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 // This page reads the session on every request. Block on the server so
 // protected content is never served from the static shell or a cache.
@@ -21,12 +23,22 @@ export const metadata: Metadata = {
 // Only these statuses count. Everything else counts as nothing.
 const COUNTED_STATUSES = ["delivered", "paid", "accepted", "picked_up"] as const;
 
+/** Today's date in Lagos (YYYY-MM-DD), for the payout hold countdown. */
+function lagosToday(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Lagos",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 export default async function VendorPayoutsPage() {
   const user = await requireRole("vendor"); // admin also passes
 
   // The vendor comes from the signed-in user, never from the URL or a form.
   const [vendor] = await getDb()
-    .select({ id: vendors.id })
+    .select({ id: vendors.id, payoutHoldUntil: vendors.payoutHoldUntil })
     .from(vendors)
     .where(eq(vendors.userId, user.id));
 
@@ -42,6 +54,41 @@ export default async function VendorPayoutsPage() {
       </main>
     );
   }
+
+  // Payout gate: a verified bank account is required before OjaLink sends money.
+  const [[bankVerified], [latestAttempt]] = await Promise.all([
+    getDb()
+      .select({ id: identityVerifications.id, checkedAt: identityVerifications.checkedAt })
+      .from(identityVerifications)
+      .where(
+        and(
+          eq(identityVerifications.userId, user.id),
+          eq(identityVerifications.kind, "bank_account"),
+          eq(identityVerifications.status, "verified"),
+        ),
+      )
+      .limit(1),
+    getDb()
+      .select({
+        status: identityVerifications.status,
+        note: identityVerifications.note,
+        checkedAt: identityVerifications.checkedAt,
+      })
+      .from(identityVerifications)
+      .where(
+        and(
+          eq(identityVerifications.userId, user.id),
+          eq(identityVerifications.kind, "bank_account"),
+        ),
+      )
+      .orderBy(desc(identityVerifications.createdAt))
+      .limit(1),
+  ]);
+
+  const bankAccountVerified = Boolean(bankVerified);
+  const payoutHoldActive = Boolean(
+    vendor.payoutHoldUntil && vendor.payoutHoldUntil >= lagosToday(),
+  );
 
   // Only this vendor's orders, only the statuses that count.
   const rows = await getDb()
@@ -73,6 +120,47 @@ export default async function VendorPayoutsPage() {
           Weeks run Monday to Sunday, Lagos time.
         </p>
       </div>
+
+      {payoutHoldActive && (
+        <div className="rounded-md bg-amber-100 px-3 py-2 text-sm text-amber-900">
+          <p className="font-medium">First payout held</p>
+          <p>
+            Your first weekly payout is held until {vendor.payoutHoldUntil} (Lagos date) while your
+            first sales settle. This is standard for new vendors.
+          </p>
+        </div>
+      )}
+
+      {bankAccountVerified ? (
+        <Card size="sm">
+          <CardContent className="flex flex-col gap-1">
+            <p className="text-sm font-medium text-green-900">
+              Payout account verified ✓
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Weekly payouts go to your verified bank account. Contact an admin to change it.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card size="sm">
+          <CardHeader>
+            <CardTitle className="text-base">Verify your payout account</CardTitle>
+            <CardDescription>
+              OjaLink only sends money to a bank account we have confirmed belongs to you. Verify
+              yours once and payouts flow weekly after that.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {latestAttempt?.status === "failed" && latestAttempt.note && (
+              <p className="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                Last attempt: {latestAttempt.note}
+              </p>
+            )}
+            <BankVerifyForm profileName={user.name} />
+          </CardContent>
+        </Card>
+      )}
 
       <Card size="sm">
         <CardContent className="flex flex-col gap-1">

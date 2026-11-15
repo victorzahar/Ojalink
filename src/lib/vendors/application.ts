@@ -3,13 +3,27 @@ const SHOP_DESCRIPTION_MAX = 300;
 const SLUG_MAX = 60;
 const SLUG_CANDIDATES = 50;
 
+const STALL_NUMBER_MAX = 40;
+const MAP_PIN_MIN = 5;
+const MAP_PIN_MAX = 200;
+const CAC_NUMBER_MAX = 20;
+const TIN_NUMBER_MAX = 20;
+
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const slugSafePattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export const vendorBusinessTypes = ["informal", "business_name", "limited"] as const;
+export type VendorBusinessType = (typeof vendorBusinessTypes)[number];
 
 export type VendorApplicationInput = {
   shopName: string;
   description: string;
   marketSlug: string;
+  stallNumber: string;
+  businessType: VendorBusinessType;
+  cacNumber: string;
+  tinNumber: string;
+  mapPin: string;
 };
 
 export type VendorApplicationResult =
@@ -48,6 +62,11 @@ export function validateVendorApplication(formData: FormData): VendorApplication
   const rawShopName = formData.get("shopName");
   const rawDescription = formData.get("description");
   const rawMarketSlug = formData.get("marketSlug");
+  const rawStallNumber = formData.get("stallNumber");
+  const rawBusinessType = formData.get("businessType");
+  const rawCacNumber = formData.get("cacNumber");
+  const rawTinNumber = formData.get("tinNumber");
+  const rawMapPin = formData.get("mapPin");
 
   if (typeof rawShopName !== "string" || typeof rawMarketSlug !== "string") {
     return { success: false };
@@ -74,7 +93,60 @@ export function validateVendorApplication(formData: FormData): VendorApplication
     return { success: false };
   }
 
-  return { success: true, data: { shopName, description, marketSlug } };
+  // Verification fields (Nigeria): stall and location are always required;
+  // a CAC number is required for any registered business type.
+  if (typeof rawStallNumber !== "string" || typeof rawBusinessType !== "string" || typeof rawMapPin !== "string") {
+    return { success: false };
+  }
+
+  const stallNumber = rawStallNumber.trim();
+  if (stallNumber.length === 0 || stallNumber.length > STALL_NUMBER_MAX) {
+    return { success: false };
+  }
+
+  if (!(vendorBusinessTypes as readonly string[]).includes(rawBusinessType)) {
+    return { success: false };
+  }
+  const businessType = rawBusinessType as VendorBusinessType;
+
+  let cacNumber = "";
+  if (typeof rawCacNumber === "string" && rawCacNumber.trim().length > 0) {
+    cacNumber = rawCacNumber.trim();
+  }
+  if (businessType !== "informal" && cacNumber.length === 0) {
+    // Registered businesses must bring their CAC number.
+    return { success: false };
+  }
+  if (cacNumber.length > CAC_NUMBER_MAX) {
+    return { success: false };
+  }
+
+  let tinNumber = "";
+  if (typeof rawTinNumber === "string" && rawTinNumber.trim().length > 0) {
+    tinNumber = rawTinNumber.trim();
+  }
+  if (tinNumber.length > TIN_NUMBER_MAX) {
+    return { success: false };
+  }
+
+  const mapPin = rawMapPin.trim();
+  if (mapPin.length < MAP_PIN_MIN || mapPin.length > MAP_PIN_MAX) {
+    return { success: false };
+  }
+
+  return {
+    success: true,
+    data: {
+      shopName,
+      description,
+      marketSlug,
+      stallNumber,
+      businessType,
+      cacNumber,
+      tinNumber,
+      mapPin,
+    },
+  };
 }
 
 export function isVendorApplicationUuid(value: unknown): value is string {

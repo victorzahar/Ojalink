@@ -26,6 +26,16 @@ type AdminVendor = {
   phone: string | null;
   marketName: string;
   marketArea: string;
+  stallNumber: string | null;
+  businessType: "informal" | "business_name" | "limited" | null;
+  cacNumber: string | null;
+  mapPin: string | null;
+};
+
+const businessTypeLabels: Record<NonNullable<AdminVendor["businessType"]>, string> = {
+  informal: "Informal trader",
+  business_name: "Registered business name",
+  limited: "Limited company",
 };
 
 type Feedback = { ok: boolean; message: string };
@@ -160,9 +170,23 @@ export function AdminVendorApprovalList({ vendors }: { vendors: AdminVendor[] })
                           {vendor.phone || "Not provided"}
                         </dd>
                       </div>
-                      <div>
-                        <dt className="text-sm text-muted-foreground">Stall location</dt>
-                        <dd className="mt-1 font-medium text-foreground">Not recorded</dd>
+                      <div className="min-w-0">
+                        <dt className="text-sm text-muted-foreground">Stall</dt>
+                        <dd className="mt-1 font-medium text-foreground">
+                          {vendor.stallNumber || "Not recorded"}
+                          {vendor.mapPin ? (
+                            <span className="block break-all text-xs text-muted-foreground">
+                              pin: {vendor.mapPin}
+                            </span>
+                          ) : null}
+                        </dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-sm text-muted-foreground">Business type</dt>
+                        <dd className="mt-1 font-medium text-foreground">
+                          {vendor.businessType ? businessTypeLabels[vendor.businessType] : "Not recorded"}
+                          {vendor.cacNumber ? ` · CAC ${vendor.cacNumber}` : ""}
+                        </dd>
                       </div>
                       <div>
                         <dt className="text-sm text-muted-foreground">Registered</dt>

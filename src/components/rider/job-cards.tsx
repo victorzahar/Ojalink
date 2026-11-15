@@ -97,6 +97,7 @@ export function ActiveJobCard({ job }: { job: ActiveJob }) {
           deliveryId={job.deliveryId}
           action={isPickedUp ? "delivered" : "picked_up"}
           label={isPickedUp ? riderPageCopy.deliveredButton : riderPageCopy.pickedUpButton}
+          handoverCodeInput={isPickedUp}
         />
       </CardContent>
     </Card>

@@ -206,8 +206,30 @@ async function BuyerOrderDetails({
           <p className="text-sm text-muted-foreground">
             {ordersPageCopy.areaLabel}: {order.deliveryArea}
           </p>
+          {order.riderName && (
+            <p className="pt-2 text-sm text-muted-foreground">
+              Rider: <span className="font-medium text-foreground">{order.riderName}</span>
+              {order.riderPlateNumber ? ` · plate ${order.riderPlateNumber}` : ""}
+            </p>
+          )}
         </CardContent>
       </Card>
+
+      {order.status === "picked_up" && order.confirmationCode && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Your handover code</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              When the rider hands over your goods, show them this 4-digit code. They must enter it to close the delivery.
+            </p>
+            <p className="mt-3 text-center text-4xl font-bold tracking-[0.4em] text-foreground">
+              {order.confirmationCode}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="space-y-3 py-5">

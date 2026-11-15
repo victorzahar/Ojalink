@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 
 import { requireRole } from "@/lib/auth/guard";
 import { getDb } from "@/lib/db";
-import { roleRequests } from "@/lib/db/schema";
+import { guarantors, riders, roleRequests } from "@/lib/db/schema";
+import { users } from "@/lib/auth/schema";
 import { validateRiderApplication } from "@/lib/riders/application";
 
 type SubmitRiderApplicationResult =
@@ -29,7 +30,8 @@ export async function submitRiderApplication(
   if (!application.success) {
     return {
       ok: false,
-      message: "Shorten the note and try again.",
+      message:
+        "Check every field: vehicle details, emergency contact, both guarantors and the training acknowledgement.",
     };
   }
 
@@ -53,12 +55,46 @@ export async function submitRiderApplication(
       };
     }
 
-    await db.insert(roleRequests).values({
-      userId: auth.id,
-      requestedRole: "rider",
-      note: application.data.note || null,
-      status: "pending",
-    });
+    // Phone verification is required before applying: admins need a verified
+    // number to call the rider about pickups, and guarantors are checked by phone.
+    const [user] = await db
+      .select({ phoneVerifiedAt: users.phoneVerifiedAt })
+      .from(users)
+      .where(eq(users.id, auth.id))
+      .limit(1);
+    if (!user?.phoneVerifiedAt) {
+      return {
+        ok: false,
+        status: 403,
+        message: "Verify your phone number first — start from your buyer area verification page.",
+      };
+    }
+
+    // Rider profile + guarantors + role request all succeed together.
+    await db.batch([
+      db.insert(riders).values({
+        userId: auth.id,
+        vehicleType: application.data.vehicleType,
+        plateNumber: application.data.plateNumber,
+        homeMapPin: application.data.homeMapPin,
+        emergencyContactName: application.data.emergencyContactName,
+        emergencyContactPhone: application.data.emergencyContactPhone,
+      }),
+      db.insert(guarantors).values(
+        application.data.guarantors.map((guarantor) => ({
+          userId: auth.id,
+          name: guarantor.name,
+          phone: guarantor.phone,
+          relation: guarantor.relation,
+        })),
+      ),
+      db.insert(roleRequests).values({
+        userId: auth.id,
+        requestedRole: "rider",
+        note: application.data.note || null,
+        status: "pending",
+      }),
+    ]);
 
     revalidatePath("/admin/riders");
     revalidatePath("/rider/apply");
@@ -66,7 +102,7 @@ export async function submitRiderApplication(
     return {
       ok: true,
       message:
-        "Application received. An admin will review it and you will get rider access once approved.",
+        "Application received. An admin will review it and call your guarantors before you get rider access.",
     };
   } catch {
     return {

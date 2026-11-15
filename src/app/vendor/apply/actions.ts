@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/guard";
 import { getDb } from "@/lib/db";
 import { markets, vendors } from "@/lib/db/schema";
+import { users } from "@/lib/auth/schema";
 import {
   validateVendorApplication,
   vendorSlugCandidates,
@@ -32,11 +33,27 @@ export async function submitVendorApplication(
   if (!application.success) {
     return {
       ok: false,
-      message: "Check the shop name, description and market, then try again.",
+      message:
+        "Check the shop name, description, market, stall number, business type and map pin, then try again.",
     };
   }
 
   const db = getDb();
+
+  // Phone verification is required before applying: admins need a verified
+  // number to reach the trader about their stall.
+  const [user] = await db
+    .select({ phoneVerifiedAt: users.phoneVerifiedAt })
+    .from(users)
+    .where(eq(users.id, auth.id))
+    .limit(1);
+  if (!user?.phoneVerifiedAt) {
+    return {
+      ok: false,
+      status: 403,
+      message: "Verify your phone number first — start from your buyer area verification page.",
+    };
+  }
 
   try {
     const [existingVendor] = await db
@@ -94,6 +111,11 @@ export async function submitVendorApplication(
       slug: chosenSlug,
       description: application.data.description || null,
       approvalStatus: "pending",
+      stallNumber: application.data.stallNumber,
+      businessType: application.data.businessType,
+      cacNumber: application.data.cacNumber || null,
+      tinNumber: application.data.tinNumber || null,
+      mapPin: application.data.mapPin,
     });
 
     revalidatePath("/admin/vendors");

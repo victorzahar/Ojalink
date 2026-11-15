@@ -1,9 +1,12 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, count, eq, inArray, sql } from "drizzle-orm";
 
 import { getTransactionalDb } from "@/lib/db";
-import { deliveries, orderItems, orders, payments, products, stockReservations, vendors } from "@/lib/db/schema";
+import { deliveries, identityVerifications, orderItems, orders, payments, products, stockReservations, vendors } from "@/lib/db/schema";
+import { users } from "@/lib/auth/schema";
 import { isMatchingSuccessfulCharge, verifyPaystackSignature } from "@/lib/payments/signature";
 import { canConsumeStockReservations } from "@/lib/checkout/stock";
+import { generateHandoverCode } from "@/lib/deliveries/handover";
+import { computeBuyerTier, orderWithinTierPerOrderCap } from "@/lib/verification/tier";
 
 type PaystackEvent = {
   event?: unknown;
@@ -52,6 +55,7 @@ export async function POST(request: Request) {
           paymentStatus: payments.status,
           orderStatus: orders.status,
           orderTotalKobo: orders.totalKobo,
+          buyerId: orders.buyerId,
         })
         .from(payments)
         .innerJoin(orders, eq(payments.orderId, orders.id))
@@ -84,6 +88,38 @@ export async function POST(request: Request) {
         return;
       }
       if (payment.paymentStatus !== "pending" || payment.orderStatus !== "pending") return;
+
+      // Defence in depth: re-check the buyer's verification tier cap at
+      // payment time. An order above the cap is marked paid but flagged for
+      // refund review and never enters the delivery flow.
+      const [buyerRow] = await tx
+        .select({
+          emailVerified: users.emailVerified,
+          phoneVerifiedAt: users.phoneVerifiedAt,
+        })
+        .from(users)
+        .where(eq(users.id, payment.buyerId))
+        .limit(1);
+      const [identityRow] = await tx
+        .select({ id: identityVerifications.id })
+        .from(identityVerifications)
+        .where(and(
+          eq(identityVerifications.userId, payment.buyerId),
+          eq(identityVerifications.kind, "nin"),
+          eq(identityVerifications.status, "verified"),
+        ))
+        .limit(1);
+      const [deliveredRow] = await tx
+        .select({ total: count() })
+        .from(orders)
+        .where(and(eq(orders.buyerId, payment.buyerId), eq(orders.status, "delivered")));
+      const buyerTier = computeBuyerTier({
+        emailVerified: buyerRow?.emailVerified ?? false,
+        phoneVerifiedAt: buyerRow?.phoneVerifiedAt ?? null,
+        hasVerifiedIdentity: Boolean(identityRow),
+        deliveredOrderCount: Number(deliveredRow?.total ?? 0),
+      });
+      const tierCapExceeded = !orderWithinTierPerOrderCap(buyerTier, payment.orderTotalKobo);
 
       const items = await tx
         .select({ productId: orderItems.productId, quantity: orderItems.quantity })
@@ -132,7 +168,7 @@ export async function POST(request: Request) {
         ))
         .orderBy(stockReservations.productId)
         .for("update");
-      const reservationsValid = items.length > 0 && productIds.length === items.length && canConsumeStockReservations(
+      const reservationsValid = items.length > 0 && productIds.length === items.length && !tierCapExceeded && canConsumeStockReservations(
         reservations,
         expectedQuantities,
         lockedProductById,
@@ -176,7 +212,7 @@ export async function POST(request: Request) {
         .set({ status: "paid", updatedAt: now })
         .where(and(eq(orders.id, payment.orderId), eq(orders.status, "pending")));
       await tx.insert(deliveries)
-        .values({ orderId: payment.orderId, status: "available" })
+        .values({ orderId: payment.orderId, status: "available", confirmationCode: generateHandoverCode() })
         .onConflictDoNothing({ target: deliveries.orderId });
     });
   } catch {

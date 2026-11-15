@@ -27,6 +27,10 @@ export default async function AdminVendorsPage() {
       phone: users.phone,
       marketName: markets.name,
       marketArea: markets.area,
+      stallNumber: vendors.stallNumber,
+      businessType: vendors.businessType,
+      cacNumber: vendors.cacNumber,
+      mapPin: vendors.mapPin,
     })
     .from(vendors)
     .innerJoin(users, eq(vendors.userId, users.id))

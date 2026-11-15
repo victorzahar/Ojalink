@@ -77,6 +77,52 @@ export const disputeStatusEnum = pgEnum("dispute_status", [
   "refunded",
 ]);
 
+// Verification (KYC) types. Identity evidence itself (NIN numbers, BVN, ID
+// images, selfies) is held by the verification provider — this table only ever
+// stores a status and a provider reference, never the document data.
+export const verificationKindEnum = pgEnum("verification_kind", [
+  "phone_otp",
+  "nin",
+  "id_document",
+  "selfie",
+  "cac",
+  "tin",
+  "bank_account",
+  "driver_licence",
+  "vehicle",
+  "shop_evidence",
+]);
+
+export const verificationStatusEnum = pgEnum("verification_status", [
+  "pending",
+  "verified",
+  "failed",
+]);
+
+export const guarantorOutcomeEnum = pgEnum("guarantor_outcome", [
+  "pending",
+  "reachable",
+  "unreachable",
+]);
+
+export const businessTypeEnum = pgEnum("vendor_business_type", [
+  "informal",
+  "business_name",
+  "limited",
+]);
+
+export const vehicleTypeEnum = pgEnum("rider_vehicle_type", [
+  "motorbike",
+  "tricycle",
+  "car",
+]);
+
+export const verificationAuditActionEnum = pgEnum("verification_audit_action", [
+  "approve",
+  "reject",
+  "guarantor_call",
+]);
+
 export const markets = pgTable(
   "markets",
   {
@@ -108,6 +154,15 @@ export const vendors = pgTable(
       .notNull()
       .default("pending"),
     isFeatured: boolean("is_featured").notNull().default(false),
+    // Verification fields (Nigeria). Documents are checked by admins or the
+    // verification provider and recorded here as facts, never as images.
+    stallNumber: text("stall_number"),
+    businessType: businessTypeEnum("business_type"),
+    cacNumber: text("cac_number"),
+    tinNumber: text("tin_number"),
+    mapPin: text("map_pin"),
+    // First payouts are held until this date (Lagos day). Null = no hold.
+    payoutHoldUntil: date("payout_hold_until"),
     createdAt,
   },
   (table) => [
@@ -266,12 +321,19 @@ export const deliveries = pgTable(
     acceptedAt: timestamp("accepted_at", { withTimezone: true }),
     pickedUpAt: timestamp("picked_up_at", { withTimezone: true }),
     deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    // Handover code shown to the buyer, required from the rider to close a
+    // delivery. Null on legacy rows created before this column existed.
+    confirmationCode: text("confirmation_code"),
     createdAt,
     updatedAt,
   },
   (table) => [
     uniqueIndex("deliveries_order_id_unique").on(table.orderId),
     index("deliveries_rider_id_idx").on(table.riderId),
+    check(
+      "deliveries_confirmation_code_format",
+      sql`${table.confirmationCode} IS NULL OR ${table.confirmationCode} ~ '^[0-9]{4}$'`,
+    ),
   ],
 );
 
@@ -430,4 +492,138 @@ export const disputes = pgTable(
     createdAt,
   },
   (table) => [index("disputes_order_id_idx").on(table.orderId)],
+);
+
+/**
+ * Nigeria KYC verification records. One row per verification attempt; the
+ * latest row per (user, kind) is the current state. Never stores the raw NIN,
+ * BVN, ID images or selfies — only provider name, a provider reference and the
+ * resulting status (Nigeria Data Protection Act 2023 rule).
+ */
+export const identityVerifications = pgTable(
+  "identity_verifications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: verificationKindEnum("kind").notNull(),
+    status: verificationStatusEnum("status").notNull().default("pending"),
+    provider: text("provider").notNull().default("manual_admin"),
+    // Reference at the provider (or a hash for internal OTP codes) — never the
+    // document itself.
+    providerRef: text("provider_ref"),
+    attempts: integer("attempts").notNull().default(0),
+    note: text("note"),
+    reviewedBy: uuid("reviewed_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    checkedAt: timestamp("checked_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("identity_verifications_user_kind_idx").on(table.userId, table.kind),
+    index("identity_verifications_status_idx").on(table.status),
+    // One verified record per user per kind: re-verification replaces it.
+    uniqueIndex("identity_verifications_verified_unique")
+      .on(table.userId, table.kind)
+      .where(sql`status = 'verified'`),
+    check(
+      "identity_verifications_attempts_nonnegative",
+      sql`${table.attempts} >= 0`,
+    ),
+    check(
+      "identity_verifications_review_when_resolved",
+      sql`(${table.status} = 'pending') OR (${table.reviewedBy} IS NOT NULL AND ${table.reviewedAt} IS NOT NULL AND ${table.note} IS NOT NULL)`,
+    ),
+  ],
+);
+
+/** Rider delivery profile. Documents live in identity_verifications. */
+export const riders = pgTable(
+  "riders",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    vehicleType: vehicleTypeEnum("vehicle_type").notNull(),
+    plateNumber: text("plate_number").notNull(),
+    // Reference for ownership papers or the owner's letter (admin-recorded).
+    vehiclePaperRef: text("vehicle_paper_ref"),
+    homeMapPin: text("home_map_pin").notNull(),
+    emergencyContactName: text("emergency_contact_name").notNull(),
+    emergencyContactPhone: text("emergency_contact_phone").notNull(),
+    trainingCompletedAt: timestamp("training_completed_at", {
+      withTimezone: true,
+    }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    uniqueIndex("riders_user_id_unique").on(table.userId),
+    index("riders_plate_number_idx").on(table.plateNumber),
+  ],
+);
+
+/** Guarantors: vendors list one, riders list two. Admins record the call. */
+export const guarantors = pgTable(
+  "guarantors",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    phone: text("phone").notNull(),
+    relation: text("relation").notNull(),
+    outcome: guarantorOutcomeEnum("outcome").notNull().default("pending"),
+    calledBy: uuid("called_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    calledAt: timestamp("called_at", { withTimezone: true }),
+    callNote: text("call_note"),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("guarantors_user_id_idx").on(table.userId),
+    check("guarantors_name_not_blank", sql`length(trim(${table.name})) > 0`),
+  ],
+);
+
+/**
+ * Who touched identity data and what they decided. Admin actions on the
+ * verification queue and guarantor calls are logged here; the queue itself
+ * only ever shows status and references, never document contents.
+ */
+export const verificationAuditLogs = pgTable(
+  "verification_audit_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    adminId: uuid("admin_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    verificationId: uuid("verification_id").references(
+      () => identityVerifications.id,
+      { onDelete: "cascade" },
+    ),
+    guarantorId: uuid("guarantor_id").references(() => guarantors.id, {
+      onDelete: "cascade",
+    }),
+    action: verificationAuditActionEnum("action").notNull(),
+    note: text("note"),
+    createdAt,
+  },
+  (table) => [
+    index("verification_audit_logs_admin_id_idx").on(table.adminId),
+    index("verification_audit_logs_verification_id_idx").on(table.verificationId),
+    check(
+      "verification_audit_logs_target_present",
+      sql`${table.verificationId} IS NOT NULL OR ${table.guarantorId} IS NOT NULL`,
+    ),
+  ],
 );

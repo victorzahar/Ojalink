@@ -26,17 +26,19 @@ const [{ auth }, { getDb }, schema, { setUserRoleAsAdmin }] = await Promise.all(
   import("@/lib/auth/roles"),
 ]);
 
-const { eq } = await import("drizzle-orm");
-const { markets, categories, vendors, products, users } = schema;
+const { eq, and } = await import("drizzle-orm");
+const { markets, categories, guarantors, identityVerifications, riders, vendors, products, users } = schema;
+const { bankAccountRefFor } = await import("@/lib/verification/bank");
 const db = getDb();
 
 type SeedUser = {
   email: string;
   name: string;
   password: string;
+  phone?: string;
 };
 
-async function ensureUser({ email, name, password }: SeedUser) {
+async function ensureUser({ email, name, password, phone }: SeedUser) {
   const [existingUser] = await db
     .select()
     .from(users)
@@ -44,6 +46,14 @@ async function ensureUser({ email, name, password }: SeedUser) {
     .limit(1);
 
   if (existingUser) {
+    if (phone) {
+      // Seed numbers are verified so demo accounts start at Buyer Tier 1.
+      await db
+        .update(users)
+        .set({ phone, phoneVerifiedAt: existingUser.phoneVerifiedAt ?? new Date() })
+        .where(eq(users.id, existingUser.id));
+      return { ...existingUser, phone };
+    }
     return existingUser;
   }
 
@@ -51,7 +61,7 @@ async function ensureUser({ email, name, password }: SeedUser) {
     body: { email, name, password },
   });
 
-  const [createdUser] = await db
+  let [createdUser] = await db
     .select()
     .from(users)
     .where(eq(users.email, email))
@@ -59,6 +69,18 @@ async function ensureUser({ email, name, password }: SeedUser) {
 
   if (!createdUser) {
     throw new Error(`Better Auth did not create ${email}.`);
+  }
+
+  if (phone) {
+    await db
+      .update(users)
+      .set({ phone, phoneVerifiedAt: new Date() })
+      .where(eq(users.id, createdUser.id));
+    [createdUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, createdUser.id))
+      .limit(1);
   }
 
   return createdUser;
@@ -101,6 +123,10 @@ const seedVendors = [
     marketSlug: "oba-market",
     isFeatured: true,
     description: "Ankara, lace and quality fabric for everyday wear and occasions.",
+    stallNumber: "B12",
+    businessType: "informal" as const,
+    cacNumber: null,
+    mapPin: "6.4654,3.4062",
   },
   {
     email: "gadget@ojalink.test",
@@ -110,6 +136,10 @@ const seedVendors = [
     marketSlug: "new-benin-market",
     isFeatured: true,
     description: "New phones, chargers and everyday mobile accessories.",
+    stallNumber: "A3",
+    businessType: "business_name" as const,
+    cacNumber: "1902837",
+    mapPin: "6.3382,5.6320",
   },
   {
     email: "provisions@ojalink.test",
@@ -119,6 +149,10 @@ const seedVendors = [
     marketSlug: "uselu-market",
     isFeatured: false,
     description: "Essential household provisions for your kitchen and pantry.",
+    stallNumber: "C21",
+    businessType: "informal" as const,
+    cacNumber: null,
+    mapPin: "6.4157,5.6740",
   },
   {
     email: "fresh@ojalink.test",
@@ -128,6 +162,10 @@ const seedVendors = [
     marketSlug: "oba-market",
     isFeatured: true,
     description: "Fresh vegetables, fruits and cooking ingredients from Benin City markets.",
+    stallNumber: "F7",
+    businessType: "informal" as const,
+    cacNumber: null,
+    mapPin: "6.4661,3.4069",
   },
   {
     email: "homestores@ojalink.test",
@@ -137,6 +175,10 @@ const seedVendors = [
     marketSlug: "uselu-market",
     isFeatured: false,
     description: "Rice, cooking oil and reliable home essentials.",
+    stallNumber: "D14",
+    businessType: "business_name" as const,
+    cacNumber: "2054118",
+    mapPin: "6.4162,5.6745",
   },
   {
     email: "mobile@ojalink.test",
@@ -146,6 +188,10 @@ const seedVendors = [
     marketSlug: "new-benin-market",
     isFeatured: false,
     description: "Budget smartphones and accessories for work and school.",
+    stallNumber: "A9",
+    businessType: "limited" as const,
+    cacNumber: "7110092",
+    mapPin: "6.3389,5.6327",
   },
 ] as const;
 
@@ -182,18 +228,87 @@ async function seed() {
   // This is a trusted server-side bootstrap step. Public sign-up always creates buyers.
   await db.update(users).set({ role: "admin" }).where(eq(users.id, admin.id));
 
-  await ensureUser({
+  // Buyer: Tier 1 (phone verified) so the demo account can order within limits.
+  const buyer = await ensureUser({
     email: "buyer@ojalink.test",
     name: "Amaka Nwosu",
     password: process.env.SEED_BUYER_PASSWORD!,
+    phone: "0801 234 5678",
   });
+
+  // A pending NIN check for the buyer gives the admin verification queue
+  // something to review — approving it raises the buyer to Tier 2.
+  const [buyerPendingNin] = await db
+    .select({ id: identityVerifications.id })
+    .from(identityVerifications)
+    .where(
+      and(
+        eq(identityVerifications.userId, buyer.id),
+        eq(identityVerifications.kind, "nin"),
+      ),
+    )
+    .limit(1);
+  if (!buyerPendingNin) {
+    await db.insert(identityVerifications).values({
+      userId: buyer.id,
+      kind: "nin",
+      status: "pending",
+      provider: "manual_admin",
+      attempts: 0,
+    });
+  }
 
   const rider = await ensureUser({
     email: "rider@ojalink.test",
     name: "Emmanuel Okon",
     password: process.env.SEED_RIDER_PASSWORD!,
+    phone: "0802 345 6789",
   });
   await setUserRoleAsAdmin({ actorId: admin.id, userId: rider.id, role: "rider" });
+
+  // Rider delivery profile + two reachable guarantors (the ones an admin
+  // would have called during onboarding).
+  await db
+    .insert(riders)
+    .values({
+      userId: rider.id,
+      vehicleType: "motorbike",
+      plateNumber: "BEN-882-KJ",
+      homeMapPin: "6.4299,5.6300",
+      emergencyContactName: "Ruth Okon",
+      emergencyContactPhone: "0803 456 7890",
+    })
+    .onConflictDoNothing({ target: riders.userId });
+
+  const [existingRiderGuarantor] = await db
+    .select({ id: guarantors.id })
+    .from(guarantors)
+    .where(eq(guarantors.userId, rider.id))
+    .limit(1);
+  if (!existingRiderGuarantor) {
+    await db.insert(guarantors).values([
+      {
+        userId: rider.id,
+        name: "Pastor Emeka Nwosu",
+        phone: "0804 567 8901",
+        relation: "Family friend",
+        outcome: "reachable",
+        calledBy: admin.id,
+        calledAt: new Date(),
+        callNote: "Confirmed he has known Emmanuel for six years and vouches for him.",
+      },
+      {
+        userId: rider.id,
+        name: "Bisi Alade",
+        phone: "0805 678 9012",
+        relation: "Landlord",
+        outcome: "reachable",
+        calledBy: admin.id,
+        calledAt: new Date(),
+        callNote: "Landlord at the Uselu address; says Emmanuel is reliable and keeps his bike safe.",
+      },
+    ]);
+  }
 
   const marketBySlug = new Map<string, { id: string }>();
   for (const market of seedMarkets) {
@@ -221,6 +336,7 @@ async function seed() {
       email: vendor.email,
       name: vendor.name,
       password: process.env.SEED_VENDOR_PASSWORD!,
+      phone: "0806 789 0123",
     });
     await setUserRoleAsAdmin({ actorId: admin.id, userId: vendorUser.id, role: "vendor" });
 
@@ -237,6 +353,10 @@ async function seed() {
         description: vendor.description,
         approvalStatus: "approved",
         isFeatured: vendor.isFeatured,
+        stallNumber: vendor.stallNumber,
+        businessType: vendor.businessType,
+        cacNumber: vendor.cacNumber,
+        mapPin: vendor.mapPin,
       })
       .onConflictDoUpdate({
         target: vendors.slug,
@@ -246,10 +366,40 @@ async function seed() {
           description: vendor.description,
           approvalStatus: "approved",
           isFeatured: vendor.isFeatured,
+          stallNumber: vendor.stallNumber,
+          businessType: vendor.businessType,
+          cacNumber: vendor.cacNumber,
+          mapPin: vendor.mapPin,
         },
       })
       .returning({ id: vendors.id, slug: vendors.slug });
     vendorBySlug.set(savedVendor.slug, savedVendor);
+
+    // Verified bank account so the payout gate is open for demo vendors.
+    // Only a one-way reference is stored — never an account number.
+    const [existingBankVerification] = await db
+      .select({ id: identityVerifications.id })
+      .from(identityVerifications)
+      .where(
+        and(
+          eq(identityVerifications.userId, vendorUser.id),
+          eq(identityVerifications.kind, "bank_account"),
+        ),
+      )
+      .limit(1);
+    if (!existingBankVerification) {
+      await db.insert(identityVerifications).values({
+        userId: vendorUser.id,
+        kind: "bank_account",
+        status: "verified",
+        provider: "paystack",
+        providerRef: bankAccountRefFor(vendor.slug, "058"),
+        note: "Bank account verified during onboarding (Paystack account resolution).",
+        reviewedBy: admin.id,
+        reviewedAt: new Date(),
+        checkedAt: new Date(),
+      });
+    }
   }
 
   for (const product of seedProducts) {
@@ -279,7 +429,7 @@ async function seed() {
       });
   }
 
-  console.log("Seed complete: 3 markets, 4 categories, 6 vendors and 20 products.");
+  console.log("Seed complete: 3 markets, 4 categories, 6 vendors, 20 products, verified accounts.");
 }
 
 await seed();
