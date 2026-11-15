@@ -90,7 +90,7 @@ Rules built into the table design:
 ### 2.3 Buyer order limit (Tier 0/1/2)
 
 - Tier 0 (new signup): browse only — checkout button disabled with copy "Verify your phone to order".
-- Tier 1 (phone OTP + email verified): order value ≤ ₦100,000 per order and ≤ ₦200,000 per 7 days (config constants, lead sets final numbers; raised from the ₦50k/₦100k proposal after team feedback).
+- Ordering gate (lead decision, 2026-11-15): **no spending caps**. A verified phone number is required to order; verified buyers can order any amount. The former Tier 1/Tier 2 naira limits were removed (amount limits felt punitive to new users; the storefront add-to-cart gap, not tiers, was blocking real usage).
 - Tier 2 (NIN or BVN check passed, **or** ≥ 3 delivered orders with no disputes): limits raised to lead-configured values.
 - Enforcement point: cart → checkout server action (Esohe's F3 seam) + the Paystack webhook — both re-check the tier server-side. Extra-risk triggers (large first order, many failed payments, new device) force Tier-1 caps regardless of stored tier.
 

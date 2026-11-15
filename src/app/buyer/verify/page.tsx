@@ -89,8 +89,8 @@ export default async function BuyerVerifyPage() {
               <CardHeader>
                 <CardTitle>Verify your phone number</CardTitle>
                 <CardDescription>
-                  New accounts can browse the marketplace. Verifying your phone unlocks ordering,
-                  with a ₦100,000 limit per order. Verifying your identity later raises it.
+                  New accounts can browse the marketplace. Verifying your phone unlocks
+                ordering — there are no spending caps on OjaLink.
                 </CardDescription>
               </CardHeader>
             </Card>

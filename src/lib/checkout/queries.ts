@@ -1,86 +1,18 @@
 import "server-only";
 
-import { and, count, eq, gt, inArray, min, notInArray, sum } from "drizzle-orm";
+import { and, eq, gt, inArray, min, sum } from "drizzle-orm";
 
 import { getDb, getTransactionalDb } from "@/lib/db";
-import { cartItems, carts, identityVerifications, orderItems, orders, payments, products, stockReservations, vendors } from "@/lib/db/schema";
+import { cartItems, carts, orderItems, orders, payments, products, stockReservations, vendors } from "@/lib/db/schema";
 import { users } from "@/lib/auth/schema";
 import { buyerCartScope } from "@/lib/cart/ownership";
 import { buyerOrderScope } from "@/lib/orders/ownership";
 import { calculateCheckoutTotals } from "@/lib/checkout/pricing";
 import { CHECKOUT_STOCK_HOLD_MS, getAvailableStock } from "@/lib/checkout/stock";
-import { computeBuyerTier, orderWithinTierLimits, type BuyerTier } from "@/lib/verification/tier";
 
 export type CheckoutResult =
   | { success: true; orderId: string }
   | { success: false; message: string };
-
-const WEEKLY_LIMIT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
-
-function tierLimitMessage(
-  tier: BuyerTier,
-  failure: { reason: "order_total" | "weekly_total" },
-): string {
-  if (tier === 0) {
-    return "Verify your phone number before ordering. Start from your buyer area verification page.";
-  }
-  if (failure.reason === "order_total") {
-    return "Order total is above the limit for your current verification level. Verify your identity (NIN) from your buyer area to raise it.";
-  }
-  return "This order would push you past your 7-day limit for your current verification level. Verify your identity (NIN) from your buyer area to raise it.";
-}
-
-/**
- * The buyer's verification tier, computed inside the transaction so the tier
- * can't change between the page and this write. Tier 0 = browse only,
- * Tier 1 = phone OTP verified, Tier 2 = NIN verified or good delivered history.
- */
-async function loadBuyerTier(
-  tx: Parameters<Parameters<ReturnType<typeof getTransactionalDb>["transaction"]>[0]>[0],
-  buyerId: string,
-): Promise<{ tier: BuyerTier; paidKoboLast7Days: number }> {
-  const [buyer] = await tx
-    .select({
-      emailVerified: users.emailVerified,
-      phoneVerifiedAt: users.phoneVerifiedAt,
-    })
-    .from(users)
-    .where(eq(users.id, buyerId))
-    .limit(1);
-
-  const [identity] = await tx
-    .select({ id: identityVerifications.id })
-    .from(identityVerifications)
-    .where(and(
-      eq(identityVerifications.userId, buyerId),
-      eq(identityVerifications.kind, "nin"),
-      eq(identityVerifications.status, "verified"),
-    ))
-    .limit(1);
-
-  const [delivered] = await tx
-    .select({ total: count() })
-    .from(orders)
-    .where(and(eq(orders.buyerId, buyerId), eq(orders.status, "delivered")));
-
-  const [weekly] = await tx
-    .select({ total: sum(orders.totalKobo) })
-    .from(orders)
-    .where(and(
-      eq(orders.buyerId, buyerId),
-      gt(orders.createdAt, new Date(Date.now() - WEEKLY_LIMIT_WINDOW_MS)),
-      notInArray(orders.status, ["cancelled", "rejected", "refunded"]),
-    ));
-
-  const tier = computeBuyerTier({
-    emailVerified: buyer?.emailVerified ?? false,
-    phoneVerifiedAt: buyer?.phoneVerifiedAt ?? null,
-    hasVerifiedIdentity: Boolean(identity),
-    deliveredOrderCount: Number(delivered?.total ?? 0),
-  });
-
-  return { tier, paidKoboLast7Days: Number(weekly?.total ?? 0) };
-}
 
 export async function createCheckoutOrder(
   buyerId: string,
@@ -156,12 +88,19 @@ export async function createCheckoutOrder(
       return { success: false, message: "We couldn't calculate your order total. Please contact support." };
     }
 
-    // Buyer verification tier (Nigeria): browse-only accounts cannot order,
-    // and Tier 1 accounts have per-order and 7-day limits.
-    const { tier, paidKoboLast7Days } = await loadBuyerTier(tx, buyerId);
-    const limitCheck = orderWithinTierLimits(tier, totals.totalKobo, paidKoboLast7Days);
-    if (!limitCheck.ok) {
-      return { success: false, message: tierLimitMessage(tier, { reason: limitCheck.reason }) };
+    // Ordering gate (Nigeria): the buyer's phone must be verified. There are
+    // no spending caps — the check runs inside the transaction so the
+    // verification state can't change between the page and this write.
+    const [gateBuyer] = await tx
+      .select({ phoneVerifiedAt: users.phoneVerifiedAt })
+      .from(users)
+      .where(eq(users.id, buyerId))
+      .limit(1);
+    if (!gateBuyer?.phoneVerifiedAt) {
+      return {
+        success: false,
+        message: "Verify your phone number before ordering. Start from your buyer area verification page.",
+      };
     }
 
     const [order] = await tx
