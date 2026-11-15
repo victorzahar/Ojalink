@@ -1,0 +1,4 @@
+# OjaLink merge gate
+# The lead owns every file: a PR cannot merge without his approval.
+# (The lead's own PRs are exempt - admins can bypass required reviews.)
+* @victorzahar
