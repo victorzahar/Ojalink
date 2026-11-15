@@ -16,6 +16,17 @@ type UpdateVendorStatusResult =
   | { ok: true; message: string }
   | { ok: false; message: string; status?: number };
 
+/** Lagos date (YYYY-MM-DD) `days` days from now — the payout hold horizon. */
+function lagosDatePlusDays(days: number): string {
+  const later = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Lagos",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(later);
+}
+
 export async function updateVendorApprovalStatus(
   vendorId: unknown,
   requestedStatus: unknown,
@@ -43,7 +54,12 @@ export async function updateVendorApprovalStatus(
   try {
     const [updatedVendor] = await getDb()
       .update(vendors)
-      .set({ approvalStatus: newStatus })
+      .set({
+        approvalStatus: newStatus,
+        // First payouts are held 3 days from approval so the vendor's first
+        // delivered orders can settle (and refunds, if any, surface first).
+        payoutHoldUntil: newStatus === "approved" ? lagosDatePlusDays(3) : null,
+      })
       .where(
         and(
           eq(vendors.id, vendorId),

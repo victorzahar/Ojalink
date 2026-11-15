@@ -3,7 +3,8 @@ import "server-only";
 import { desc, eq } from "drizzle-orm";
 
 import { getDb } from "@/lib/db";
-import { deliveries, orderItems, orders, payments, vendors } from "@/lib/db/schema";
+import { deliveries, orderItems, orders, payments, riders, vendors } from "@/lib/db/schema";
+import { users } from "@/lib/auth/schema";
 import { buyerOrderScope, buyerOrdersScope } from "@/lib/orders/ownership";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -106,9 +107,14 @@ export async function getBuyerOrderById(buyerId: string, orderId: string) {
       .select({
         pickedUpAt: deliveries.pickedUpAt,
         deliveredAt: deliveries.deliveredAt,
+        confirmationCode: deliveries.confirmationCode,
+        riderName: users.name,
+        plateNumber: riders.plateNumber,
       })
       .from(deliveries)
       .innerJoin(orders, eq(deliveries.orderId, orders.id))
+      .leftJoin(users, eq(deliveries.riderId, users.id))
+      .leftJoin(riders, eq(riders.userId, deliveries.riderId))
       .where(buyerOrderCondition)
       .limit(1),
   ]);
@@ -119,5 +125,8 @@ export async function getBuyerOrderById(buyerId: string, orderId: string) {
     paidAt: payment?.paidAt ?? null,
     pickedUpAt: delivery?.pickedUpAt ?? null,
     deliveredAt: delivery?.deliveredAt ?? null,
+    confirmationCode: delivery?.confirmationCode ?? null,
+    riderName: delivery?.riderName ?? null,
+    riderPlateNumber: delivery?.plateNumber ?? null,
   };
 }

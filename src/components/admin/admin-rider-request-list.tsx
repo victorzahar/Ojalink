@@ -16,6 +16,25 @@ import {
 
 type RequestStatus = "pending" | "approved" | "rejected";
 type RequestFilter = "all" | RequestStatus;
+type GuarantorOutcome = "pending" | "reachable" | "unreachable";
+
+type AdminRiderGuarantor = {
+  userId: string;
+  name: string;
+  phone: string;
+  relation: string;
+  outcome: GuarantorOutcome;
+  callNote: string | null;
+};
+
+type AdminRiderProfile = {
+  userId: string;
+  vehicleType: "motorbike" | "tricycle" | "car";
+  plateNumber: string;
+  homeMapPin: string;
+  emergencyContactName: string;
+  emergencyContactPhone: string;
+};
 
 type AdminRiderRequest = {
   id: string;
@@ -25,6 +44,20 @@ type AdminRiderRequest = {
   applicantName: string;
   applicantEmail: string;
   phone: string | null;
+  rider: AdminRiderProfile | null;
+  guarantors: AdminRiderGuarantor[];
+};
+
+const vehicleLabels: Record<NonNullable<AdminRiderProfile["vehicleType"]>, string> = {
+  motorbike: "Motorbike",
+  tricycle: "Tricycle (Keke)",
+  car: "Car",
+};
+
+const guarantorOutcomeLabels: Record<GuarantorOutcome, string> = {
+  pending: "Call pending",
+  reachable: "Reachable",
+  unreachable: "Unreachable",
 };
 
 type Feedback = { ok: boolean; message: string };
@@ -167,7 +200,54 @@ export function AdminRiderRequestList({ requests }: { requests: AdminRiderReques
                           </time>
                         </dd>
                       </div>
+                      {request.rider && (
+                        <>
+                          <div>
+                            <dt className="text-sm text-muted-foreground">Vehicle</dt>
+                            <dd className="mt-1 font-medium text-foreground">
+                              {vehicleLabels[request.rider.vehicleType]} · plate{" "}
+                              {request.rider.plateNumber}
+                            </dd>
+                          </div>
+                          <div className="min-w-0">
+                            <dt className="text-sm text-muted-foreground">Emergency contact</dt>
+                            <dd className="mt-1 font-medium text-foreground">
+                              {request.rider.emergencyContactName} ·{" "}
+                              {request.rider.emergencyContactPhone}
+                            </dd>
+                          </div>
+                        </>
+                      )}
                     </dl>
+
+                    {request.rider?.homeMapPin && (
+                      <p className="mt-2 break-all text-xs text-muted-foreground">
+                        Home pin: {request.rider.homeMapPin}
+                      </p>
+                    )}
+
+                    {request.guarantors.length > 0 && (
+                      <div className="mt-4 border-t border-border pt-4">
+                        <p className="text-sm font-medium text-foreground">Guarantors</p>
+                        <ul className="mt-2 grid gap-2">
+                          {request.guarantors.map((guarantor) => (
+                            <li key={guarantor.name + guarantor.phone} className="text-sm">
+                              <p className="font-medium text-foreground">
+                                {guarantor.name} · {guarantor.phone}{" "}
+                                <span className="text-muted-foreground">({guarantor.relation})</span>
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {guarantorOutcomeLabels[guarantor.outcome]}
+                                {guarantor.callNote ? ` — ${guarantor.callNote}` : ""}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Record call outcomes on the Verifications page.
+                        </p>
+                      </div>
+                    )}
 
                     {requestFeedback ? (
                       <p

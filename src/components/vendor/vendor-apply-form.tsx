@@ -123,6 +123,98 @@ export function VendorApplyForm({ markets }: { markets: MarketOption[] }) {
             />
           </div>
 
+          <div className="grid gap-1.5">
+            <label htmlFor="stallNumber" className="text-sm font-medium text-foreground">
+              Stall number
+            </label>
+            <input
+              id="stallNumber"
+              name="stallNumber"
+              type="text"
+              required
+              maxLength={40}
+              className="h-11 rounded-md border border-input bg-background px-3 text-base text-foreground"
+              placeholder="e.g. B12"
+              aria-describedby="stallNumber-hint"
+            />
+            <p id="stallNumber-hint" className="text-xs text-muted-foreground">
+              Your stall or shop number inside the market. Admins use it to find you.
+            </p>
+          </div>
+
+          <div className="grid gap-1.5">
+            <label htmlFor="businessType" className="text-sm font-medium text-foreground">
+              Business type
+            </label>
+            <select
+              id="businessType"
+              name="businessType"
+              required
+              className="h-11 rounded-md border border-input bg-background px-3 text-base text-foreground"
+              defaultValue="informal"
+              aria-describedby="businessType-hint"
+            >
+              <option value="informal">Informal trader (no CAC registration)</option>
+              <option value="business_name">Registered business name</option>
+              <option value="limited">Limited company</option>
+            </select>
+            <p id="businessType-hint" className="text-xs text-muted-foreground">
+              Registered businesses must provide their CAC number below.
+            </p>
+          </div>
+
+          <div className="grid gap-1.5">
+            <label htmlFor="cacNumber" className="text-sm font-medium text-foreground">
+              CAC number <span className="text-muted-foreground">(registered businesses only)</span>
+            </label>
+            <input
+              id="cacNumber"
+              name="cacNumber"
+              type="text"
+              maxLength={20}
+              className="h-11 rounded-md border border-input bg-background px-3 text-base text-foreground"
+              placeholder="e.g. 1902837"
+              aria-describedby="cacNumber-hint"
+            />
+            <p id="cacNumber-hint" className="text-xs text-muted-foreground">
+              Only for registered business names and limited companies.
+            </p>
+          </div>
+
+          <div className="grid gap-1.5">
+            <label htmlFor="tinNumber" className="text-sm font-medium text-foreground">
+              Tax identification number (TIN) <span className="text-muted-foreground">(optional)</span>
+            </label>
+            <input
+              id="tinNumber"
+              name="tinNumber"
+              type="text"
+              maxLength={20}
+              className="h-11 rounded-md border border-input bg-background px-3 text-base text-foreground"
+              placeholder="e.g. 12345678-0001"
+            />
+          </div>
+
+          <div className="grid gap-1.5">
+            <label htmlFor="mapPin" className="text-sm font-medium text-foreground">
+              Stall location (map pin)
+            </label>
+            <input
+              id="mapPin"
+              name="mapPin"
+              type="text"
+              required
+              minLength={5}
+              maxLength={200}
+              className="h-11 rounded-md border border-input bg-background px-3 text-base text-foreground"
+              placeholder="e.g. 6.4654, 3.4062 or Google Maps link"
+              aria-describedby="mapPin-hint"
+            />
+            <p id="mapPin-hint" className="text-xs text-muted-foreground">
+              Paste a pin or link so the rider can find your stall at pickup.
+            </p>
+          </div>
+
           {error && (
             <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
               {error}
